@@ -184,3 +184,145 @@ Ejemplo:
 
 ---
 
+# Layout Files
+
+## Atajo `Route::view()`
+
+Cuando una ruta solo carga una vista, Laravel permite usar:
+
+```php
+Route::view('/contact', 'contact');
+```
+
+En lugar de:
+
+```php
+Route::get('/contact', function () {
+    return view('contact');
+});
+```
+
+Es útil para páginas estáticas.
+
+![atajo routes](Images-entregable01/Layouts%20File%201.1%20Atajo%20routes.png)
+
+## Problema: Código repetido
+
+Al crear varias páginas aparecen elementos repetidos:
+
+- Menú
+- HTML principal
+- CSS
+- JavaScript
+
+Para evitarlo se utilizan layouts y componentes Blade.
+
+## Crear un Layout
+
+Se crea un componente reutilizable:
+resources/views/components/layout.blade.php
+
+Aquí se coloca el código común:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    {{ $slot }}
+</body>
+</html>
+```
+
+## Uso de Slot
+
+`{{ $slot }}` representa el contenido específico de cada página.
+
+Ejemplo:
+
+```html
+<x-layout>
+    <h1>Welcome to Laravel</h1>
+
+    <nav>
+        <a href="about">About Us</a>
+        <a href="contact">Contact Us</a>
+    </nav>
+</x-layout>
+```
+
+El contenido se inserta dentro del layout.
+
+![Mustra de layout](Images-entregable01/Layouts%20File%201.2%20muestra%20de%20layout.png)
+
+## Props en componentes(Titulos)
+
+Los componentes pueden recibir datos.
+
+Queremos que nuestro titulos sean diferente segun la vista que ingresmos.
+
+
+En el archivo layout.blade.php combiamos el titulo por lo siguient:
+```html
+<title>{{ $title }}</title>
+```
+
+En cada vista se debe de colocar el titulo de la siguiente forma:
+```html
+<x-layout title="About Us">
+```
+
+En el componente se define:
+
+```php
+@props(['title'])
+```
+
+Esto permite crear valores dinámicos como títulos de página. También se pueden definir valores por defecto:
+
+```php
+@props([
+    'title' => 'Laracasts'
+])
+```
+![Props Tile](Images-entregable01/Layouts%20File%201.3%20Tittles.png)
+## Attributes vs Props
+
+**Props** — Son datos enviados al componente:
+title="Home"
+
+**Attributes** — Son atributos HTML:
+class=""
+
+id=""
+
+Laravel los maneja de forma diferente.
+
+## Componentes reutilizables
+
+Se pueden crear componentes como tarjetas:
+components/card.blade.php
+
+Ejemplo:
+
+```html
+<div class="card" styles: >
+{{ $slot }}
+</div>
+```
+
+Uso:
+
+```html
+<x-card>
+Contenido
+</x-card>
+```
+
+![Cards](Images-entregable01/Layouts%20File%201.4%20cards.png)
+---
+---

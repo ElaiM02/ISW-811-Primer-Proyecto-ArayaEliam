@@ -1,15 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-</head>
-<body>
+<x-layout title="Contact Us">
     <h1>Contact Us</h1>
-    <p>Email: example@test.com</p>
-    <div>
-        <a href="/">Return to Home</a>
-    </div>
-</body>
-</html>
+
+    <x-card>
+        <p> Contact us at: 11111111</p>
+    </x-card>
+</x-layout> 
