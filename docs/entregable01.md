@@ -387,3 +387,99 @@ Route::get('/', function () {
 
 ---
 ---
+
+# Blade Directives
+
+## Pasar arreglos a las vistas
+
+Se puede enviar un arreglo de datos a una vista así:
+
+```php
+Route::get('/', function () {
+    return view('welcome', [
+        'tasks' => ['Go to the market', 'Walk the dog', 'Watch a video tutorial']
+    ]);
+});
+```
+
+>No se puede hacer `{{ $tasks }}` directamente si es un arreglo — causará un error.
+
+![Error de arreglo](Images-entregable01/Blade%20Directives%201.1%20Error%20de%20arreglo.png)
+
+## Depuración con `dump` y `dd`
+Puedes utilizar `var_dump(tasks)` o `die(var_dump(tasks))`
+
+![EDepuracion con dumb o dd](Images-entregable01/Blade%20Directives%201.2%20Utilizando%20dumb.png)
+
+En lugar de `var_dump()` o `die(var_dump())`, Blade ofrece directivas más limpias:
+
+```blade
+@dump($tasks)   {{-- muestra el contenido sin detener la ejecución --}}
+@dd($tasks)     {{-- muestra el contenido y detiene la ejecución --}}
+```
+![EDepuracion con @dumb o @dd](Images-entregable01/Blade%20Directives%201.3%20Using%20Dump.png)
+
+## Condicionales
+
+```php
+    <?php if (count($tasks)): ?>
+        <p> Yes we have some tasks. How many Eliam? <?= count($tasks) ?> tasks, in fact.</p>
+    <?php endif; ?>
+```
+
+Si lo cambiamos por un formato blade deberia de verse el mismo resultado:
+
+```blade
+@if (count($tasks))
+    <p> Yes we have some tasks. How many Eliam? <?= count($tasks) ?> tasks, in fact.</p>
+@endif
+```
+![Count](Images-entregable01/Blade%20Directives%201.4%20Count.png)
+
+También existe `@unless` como equivalente a `if not`:
+
+```blade
+@unless(count($tasks))
+    No hay tareas activas.
+@endunless
+```
+
+## Bucles con `@foreach`
+
+```blade
+@foreach($tasks as $task)
+    <li>{{ $task }}</li>
+@endforeach
+```
+![Blade foreach](Images-entregable01/Blade%20Directives%201.5%20Foreach.png)
+
+## Manejo de arreglos vacíos con `@forelse`
+
+Cuando el arreglo puede estar vacío, `@forelse` combina el bucle con un caso alternativo:
+
+```blade
+@forelse($tasks as $task)
+    <li>{{ $task }}</li>
+@empty
+    <p>There are no active tasks.</p>
+@endforelse
+```
+![Forelse and empty](Images-entregable01/Blade%20Directives%201.6%20empty,%20forelse.png)
+
+## Directivas de autenticación y autorización
+
+Blade también incluye directivas para controlar acceso según el estado del usuario:
+
+```blade
+@auth
+    {{-- usuario autenticado --}}
+@endauth
+
+@guest
+    {{-- visitante sin sesión iniciada --}}
+@endguest
+
+@can('editar', $post)
+    <a href="/posts/edit">Editar</a>
+@endcan
+```
