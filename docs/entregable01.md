@@ -326,3 +326,64 @@ Contenido
 ![Cards](Images-entregable01/Layouts%20File%201.4%20cards.png)
 ---
 ---
+
+# Pass Data to Views
+
+## Métodos para pasar datos
+
+En web.php
+**Con `Route::view()`** — tercer parámetro como arreglo:
+```php
+Route::view('/welcome', 'welcome', ['greeting' => 'Hello, welcome to our website!', 'person' => 'Eliam!']);
+```
+
+En la vista de la pagina welcome:
+
+```html
+<x-layout>
+    {{ $greeting }}, {{ $person }}!
+</x-layout>
+```
+
+![Metodo pasar datos](Images-entregable01/Pass%20Data%201.1%20metodos%20para%20pasar%20datos.png)
+
+**Con `Route::get()`** — segundo argumento de `view()`:
+```php
+Route::get('/', function () {
+    return view('welcome', ['person' => request('person')]);
+});
+```
+
+## Query String
+
+Leer parámetros de la URL con `request()`:
+```php
+request('person') // lee ?person=Frank
+```
+![query string](Images-entregable01/Pass%20data%201.2%20query%20string.png)
+## Valores por defecto
+
+```php
+request('person', 'World') // si no hay valor, usa 'World'
+```
+
+## Escapado y seguridad XSS
+
+| Sintaxis | Escapa HTML | Uso recomendado |
+|---|---|---|
+| `{{ $var }}` | Sí | Datos del usuario |
+| `{!! $var !!}` | No | Solo datos de confianza |
+
+## Otro metodo 
+
+```php
+Route::get('/', function () {
+    return view('welcome', [
+        'greeting' => 'Hello, welcome to our website!',
+        'person' => request('person')
+    ]);
+});
+```
+
+---
+---

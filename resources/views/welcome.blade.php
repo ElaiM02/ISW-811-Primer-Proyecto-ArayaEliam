@@ -1,3 +1,5 @@
 <x-layout>
-    <h1>Welcome to Laravel</h1>
+    <p>
+        {{ $greeting }}, {!! $person !!}!
+    </p>
 </x-layout>
