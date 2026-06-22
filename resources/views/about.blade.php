@@ -6,11 +6,8 @@
     <title>Document</title>
 </head>
 <body>
-    <h1>Welcome to Laravel</h1>
-
     <div>
-        <a href="about">About Us</a>
-        <a href="contact">Contact Us</a>
+        <a href="/">Return to Home</a>
     </div>
 </body>
 </html>
