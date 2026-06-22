@@ -6,12 +6,26 @@ Route::view('/contact', 'contact');
 Route::view('/about', 'about');
 
 Route::get('/', function () {
-    return view('welcome', [
-        'tasks' => [
+    $ideas = session()->get('ideas');
 
-        ],
+    return view('ideas', [
+        'ideas' => $ideas
     ]);
 });
+
+Route::post('/ideas', function () {
+    $idea = request('idea');
+
+    session()->push('ideas', $idea);
+
+    return redirect('/');
+});
+#Route::get('/', function () {
+#    return view('welcome', [
+#        'tasks' => [
+#        ],
+#    ]);
+#});
 
 #Route::view('/', 'welcome', [
 #    'greeting' => 'Hello, welcome to our website!',

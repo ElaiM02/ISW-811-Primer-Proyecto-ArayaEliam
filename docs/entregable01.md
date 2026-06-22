@@ -483,3 +483,125 @@ Blade también incluye directivas para controlar acceso según el estado del usu
     <a href="/posts/edit">Editar</a>
 @endcan
 ```
+
+---
+---
+
+# Forms
+
+## Crear la vista y el formulario
+
+Se crea una vista `ideas.blade.php` con un formulario básico usando Tailwind CSS (https://tailwindcss.com/). El formulario debe tener `method="POST"` y un `action` que apunte al endpoint donde se enviará la data:
+
+utilizaremos este codigo de ejemplo que esta en la pagina:
+![tailwindcss](Images-entregable01/Forms%201.1%20pagina%20tailwindcss.png)
+
+![tailwindcss](Images-entregable01/forms%201.2%20vista%20del%20codigo.png)
+```html
+<form action="">
+        <div class="col-span-full">
+          <label for="idea" class="block text-sm/6 font-medium text-white">New idea</label>
+          <div class="mt-2">
+            <textarea id="idea" name="idea" rows="3" class="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"></textarea>
+          </div>
+          <p class="mt-3 text-sm/6 text-gray-400">Have an idea to share?</p>
+        </div>
+
+        <div class="mt-6 flex items-center gap-x-6">
+            <button type="submit" class="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500">Save</button>
+        </div>
+    </form>
+```
+
+Agregamos esta liena en layout.blade.php:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+```
+> Para estilos rápidos en demos se puede usar Tailwind desde un CDN, aunque en producción se recomienda instalarlo formalmente.
+![Formulario con tailwind](Images-entregable01/forms%201.3%20utilizando%20tailwind.png)
+
+## Registrar las rutas
+
+Se necesitan **dos rutas** separadas: una para mostrar el formulario y otra para recibir los datos:
+
+```php
+// Muestra el formulario
+Route::get('/', function () {
+    return view('ideas');
+});
+
+// Recibe y procesa el formulario
+Route::post('/ideas', function () {
+    dd('Hello');
+});
+```
+
+## Protección CSRF
+
+Al enviar un formulario POST, Laravel lanza un error **419** si no se incluye el token CSRF. La solución es agregar la directiva `@csrf` dentro del formulario:
+
+```blade
+<form method="POST" action="/ideas">
+    @csrf
+    ...
+</form>
+```
+
+> El token se genera en el servidor y se compara al recibir el formulario. Esto protege contra ataques de **Cross-Site Request Forgery**, donde un sitio externo podría enviar solicitudes maliciosas en nombre del usuario.
+
+![Token](Images-entregable01/forms%201.4%20token.png)
+
+## Leer datos del Request
+
+Hay varias formas de acceder a los datos enviados:
+
+```php
+// Función helper (la más simple)
+request('idea')
+
+// Facade de Laravel
+Request::get('idea')
+
+// Inyección de dependencia
+function (Illuminate\Http\Request $request) {
+    $request->get('idea');
+}
+```
+![Request](Images-entregable01/forms%201.5%20request.png)
+
+
+## Guardar datos en Session
+
+Como alternativa temporal a una base de datos, se puede usar la sesión del usuario:
+
+```php
+// Agregar un item al arreglo 'ideas' en sesión
+session()->push('ideas', $idea);
+
+// Leer las ideas guardadas (con arreglo vacío como valor por defecto)
+session('ideas', []);
+
+// Eliminar las ideas de la sesión
+session()->forget('ideas');
+```
+
+![Datos de Session](Images-entregable01/forms%201.6%20datos%20de%20session.png)
+
+> La sesión funciona como un bloc de notas único por usuario. Es temporal y no persiste entre navegadores distintos. Para persistencia real se debe usar una base de datos.
+
+## Mostrar las ideas guardadas
+
+En la vista se recorre el arreglo con `@forelse` para manejar el caso vacío:
+
+```blade
+@if(count($ideas))
+    <ul>
+        @foreach($ideas as $idea)
+            <li>{{ $idea }}</li>
+        @endforeach
+    </ul>
+@endif
+```
+
+![Ideas guardadas](Images-entregable01/forms%201.7%20ideas%20guardadas.png)
