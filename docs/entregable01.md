@@ -605,3 +605,171 @@ En la vista se recorre el arreglo con `@forelse` para manejar el caso vacío:
 ```
 
 ![Ideas guardadas](Images-entregable01/forms%201.7%20ideas%20guardadas.png)
+
+---
+---
+
+# Databases, Migrations, and Eloquent
+
+## Configuración de la base de datos
+
+Laravel soporta múltiples drivers de base de datos (MySQL, PostgreSQL, SQLite, entre otros). Por defecto usa **SQLite**, que es una base de datos basada en archivos. La configuración se define en el archivo `.env`:
+
+```
+DB_CONNECTION=sqlite
+```
+
+> El archivo `.env` almacena la configuración del entorno local. En producción se usa un archivo `.env` distinto con configuraciones diferentes.
+
+## Migraciones
+
+Las migraciones son **control de versiones para la base de datos**. Permiten definir tablas y columnas de forma programática y compartirlas con el equipo.
+
+Crear una migración:
+
+```bash
+php artisan make:migration create_ideas_table
+```
+![Tabla_ideas](Images-entregable01/database%201.1%20crear%20tabla%20ideas.png)
+Estructura básica de una migración:
+
+```php
+public function up(): void
+{
+    Schema::create('ideas', function (Blueprint $table) {
+        $table->id();
+        $table->text('description');
+        $table->timestamps();
+    });
+}
+
+public function down(): void
+{
+    Schema::dropIfExists('ideas');
+}
+```
+
+Ejecutar las migraciones:
+
+```bash
+php artisan migrate
+```
+
+### Opciones para modificar una tabla existente
+
+**Opción 1** — Durante desarrollo, modificar la migración original y refrescar:
+
+```bash
+php artisan migrate:refresh  # borra todos los datos y recrea las tablas
+```
+
+**Opción 2** — En producción o trabajo en equipo, crear una nueva migración:
+
+```bash
+php artisan make:migration add_state_to_ideas_table
+```
+
+## Consultas con el Facade DB
+
+Forma genérica de consultar cualquier tabla:
+
+```php
+use Illuminate\Support\Facades\DB;
+
+// Obtener todos los registros
+$ideas = DB::table('ideas')->get();
+
+// Con condición
+$ideas = DB::table('ideas')->where('state', 'pending')->get();
+```
+
+Los resultados se retornan como una **colección de objetos**, no como arreglos:
+
+```php
+$idea->description  // acceder a una propiedad
+```
+
+![muestra de datos](Images-entregable01/database%201.2%20datos%20desde%20base%20de%20datos.png)
+## Eloquent ORM
+
+Eloquent es el **ORM de Laravel**. Permite crear una clase que representa una tabla de la base de datos.
+
+Crear un modelo:
+
+```bash
+php artisan make:model Idea
+```
+
+Esto genera `app/Models/Idea.php`:
+
+![crear model Idea](Images-entregable01/database%201.3%20crear%20model.png)
+
+```php
+class Idea extends Model
+{
+    protected $guarded = [];  // deshabilitar protección para mayor control manual
+}
+```
+
+### Operaciones básicas con Eloquent
+
+```php
+use App\Models\Idea;
+
+// Obtener todos
+$ideas = Idea::all();
+
+// Buscar por ID
+$idea = Idea::find(1);
+
+// Con condición
+$ideas = Idea::where('state', 'pending')->get();
+
+// Crear un nuevo registro
+Idea::create([
+    'description' => request('idea'),
+    'state' => 'pending',
+]);
+```
+
+> Eloquent asigna automáticamente los campos `created_at` y `updated_at` al crear o actualizar registros.
+
+## Filtrado dinámico con Query String
+
+Se puede filtrar resultados según parámetros de la URL (`?state=pending`):
+
+```php
+$ideas = Idea::when(request('state'), function ($query, $state) {
+    $query->where('state', $state);
+})->get();
+```
+
+Ejemplos de uso en la URL:
+
+```
+/?state=pending    → solo ideas pendientes
+/?state=completed  → solo ideas completadas
+```
+
+## Flujo completo con Eloquent
+
+```php
+// Mostrar ideas
+Route::get('/', function () {
+    $ideas = Idea::when(request('state'), function ($query, $state) {
+        $query->where('state', $state);
+    })->get();
+
+    return view('ideas', ['ideas' => $ideas]);
+});
+
+// Guardar nueva idea
+Route::post('/ideas', function () {
+    Idea::create([
+        'description' => request('idea'),
+        'state' => 'pending',
+    ]);
+
+    return redirect('/');
+});
+```
