@@ -773,3 +773,67 @@ Route::post('/ideas', function () {
     return redirect('/');
 });
 ```
+
+---
+---
+
+# HTTP Requests y REST en Laravel
+
+## Métodos HTTP → CRUD
+
+| Método | Acción | Uso |
+|---|---|---|
+| `GET` | index / show | Leer recursos |
+| `POST` | store | Crear recurso |
+| `PATCH` | update | Actualizar recurso |
+| `DELETE` | destroy | Eliminar recurso |
+
+## Rutas del recurso
+
+```php
+Route::get('/ideas', fn() => view('ideas.index', ['ideas' => Idea::all()]));
+Route::get('/ideas/{idea}', fn(Idea $idea) => view('ideas.show', compact('idea')));
+Route::get('/ideas/{idea}/edit', fn(Idea $idea) => view('ideas.edit', compact('idea')));
+Route::post('/ideas', fn() => [Idea::create(['description' => request('description')]), redirect('/ideas')]);
+Route::patch('/ideas/{idea}', fn(Idea $idea) => [$idea->update(['description' => request('description')]), redirect("/ideas/$idea->id")]);
+Route::delete('/ideas/{idea}', fn(Idea $idea) => [$idea->delete(), redirect('/ideas')]);
+```
+
+![Ruta ejemplo 1](Images-entregable01/REST%201.1%20Ejemplo%20de%20ruta%201.png)
+
+![Ruta show](Images-entregable01/REST%201.2%20ejemplo%20show.png)
+## Route Model Binding
+
+Laravel resuelve el modelo automáticamente, el nombre del parámetro debe coincidir con el wildcard:
+
+```php
+// Laravel busca el registro y retorna 404 si no existe
+//Show
+Route::get('/ideas/{id}', function ($id) {
+    $idea = Idea::find($id);
+
+    if (is_null($idea)) {
+        abort(404);
+    }
+
+    return view('ideas.show', [
+        'idea' => $idea
+    ]);
+});
+```
+
+![Model binding](Images-entregable01/rest%201.3%20route%20model%20binding.png)
+
+## Method Spoofing
+
+Los navegadores solo soportan `GET` y `POST`, por eso se usa `@method`:
+
+```blade
+<form method="POST" action="/ideas/{{ $idea->id }}">
+    @csrf
+    @method('PATCH')  {{-- o DELETE --}}
+    ...
+</form>
+```
+
+El botón de eliminar debe estar en un **formulario separado** vinculado con el atributo `form="id-del-form"`.
