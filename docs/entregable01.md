@@ -837,3 +837,50 @@ Los navegadores solo soportan `GET` y `POST`, por eso se usa `@method`:
 ```
 
 El botón de eliminar debe estar en un **formulario separado** vinculado con el atributo `form="id-del-form"`.
+
+---
+---
+
+# Controllers
+
+## Las 7 acciones RESTful
+
+Todo recurso en Laravel tiene 7 acciones estándar:
+
+| Acción | Método | URI | Descripción |
+|---|---|---|---|
+| `index` | GET | `/ideas` | Lista todos |
+| `create` | GET | `/ideas/create` | Muestra formulario de creación |
+| `store` | POST | `/ideas` | Guarda nuevo registro |
+| `show` | GET | `/ideas/{idea}` | Muestra uno específico |
+| `edit` | GET | `/ideas/{idea}/edit` | Muestra formulario de edición |
+| `update` | PATCH | `/ideas/{idea}` | Actualiza un registro |
+| `destroy` | DELETE | `/ideas/{idea}` | Elimina un registro |
+
+## Crear un controlador de recurso
+
+```bash
+php artisan make:controller IdeaController --resource --model=Idea
+```
+
+Esto genera automáticamente las 7 acciones con Route Model Binding incluido en `app/Http/Controllers/IdeaController.php`.
+
+![Crear contreoller](Images-entregable01/controllers%201.1%20crear%20IdeaController.png)
+
+## Conectar rutas al controlador
+
+```php
+use App\Http\Controllers\IdeaController;
+
+Route::get('/ideas', [IdeaController::class, 'index']);
+Route::get('/ideas/create', [IdeaController::class, 'create']);
+Route::post('/ideas', [IdeaController::class, 'store']);
+Route::get('/ideas/{idea}', [IdeaController::class, 'show']);
+Route::get('/ideas/{idea}/edit', [IdeaController::class, 'edit']);
+Route::patch('/ideas/{idea}', [IdeaController::class, 'update']);
+Route::delete('/ideas/{idea}', [IdeaController::class, 'destroy']);
+```
+
+## Regla de oro
+
+Intenta siempre usar solo estas 7 acciones. Si necesitas algo diferente, crea un **nuevo controlador** en lugar de inventar nombres de acciones nuevas.
