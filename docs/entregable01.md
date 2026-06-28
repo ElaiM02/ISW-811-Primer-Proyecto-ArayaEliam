@@ -959,3 +959,82 @@ Los errores de validación se guardan en sesión **flash** — solo están dispo
 
 ---
 ---
+
+# Clases Form Request en Laravel
+
+## ¿Qué es un Form Request?
+
+Es una clase dedicada para manejar la validación **fuera del controlador**. No es mejor ni peor que validar en el controlador, es solo una preferencia personal.
+
+## Crear un Form Request
+
+```bash
+php artisan make:request StoreIdeaRequest
+```
+
+Esto genera `app/Http/Requests/StoreIdeaRequest.php`:
+
+![Crear form request](Images-entregable01/Class%20request%201.1%20crear%20form%20request.png)
+
+
+```php
+class StoreIdeaRequest extends FormRequest
+{
+    // ¿Está autorizado el usuario?
+    public function authorize(): bool
+    {
+        return true; // false = error 403
+    }
+
+    // Reglas de validación
+    public function rules(): array
+    {
+        return [
+            'description' => ['required', 'min:10'],
+        ];
+    }
+
+    // Mensajes personalizados (opcional)
+    public function messages(): array
+    {
+        return [
+            'description.required' => '¡Escribe algo!',
+            'description.min' => 'Dame algo para :attribute',
+        ];
+    }
+}
+```
+
+## Form Request Classes
+
+Solo se sustituye `Request` por la clase creada — la validación ocurre **automáticamente**:
+
+```php
+// Antes
+public function store(Request $request) {
+    $request->validate([...]);
+}
+
+// Después
+public function store(StoreIdeaRequest $request) {
+    // La validación ya ocurrió automáticamente
+    Idea::create(['description' => $request->input('description')]);
+    return redirect('/ideas');
+}
+```
+
+## ¿Un Form Request o dos?
+
+| Situación | Solución |
+|---|---|
+| Las reglas de store y update son **iguales** | Compartir un solo `IdeaRequest` |
+| Las reglas son **diferentes** | Crear `StoreIdeaRequest` y `UpdateIdeaRequest` por separado |
+
+```php
+// Compartiendo el mismo Form Request
+public function store(IdeaRequest $request) { ... }
+public function update(IdeaRequest $request, Idea $idea) { ... }
+```
+
+---
+---
