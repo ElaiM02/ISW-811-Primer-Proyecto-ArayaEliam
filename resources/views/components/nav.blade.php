@@ -19,7 +19,16 @@
       <li><a href="/ideas/create">New Idea</a></li>
     </ul>
   </div>
-  <div class="navbar-end">
-    <a class="btn">Register</a>
+  <div class="navbar-end space-x-2">
+    @auth
+    <form method="POST" action="/logout">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="btn btn-primary">Logout</button>
+    </form>
+    @else
+      <a class="btn btn-primary" href="/register">Register</a>
+      <a class="btn btn-secondary" href="/login">Login</a>
+    @endauth
   </div>
 </div>

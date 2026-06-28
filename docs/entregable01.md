@@ -1120,3 +1120,140 @@ Uso en la vista:
 ![Diseño de pagina](Images-entregable01/daisyui%201.3%20diseño%20de%20pagina.png)
 ---
 ---
+
+# II. Authentication and Authorization, primera parte
+
+# Authentication Explained
+
+## Flujo completo de autenticación
+
+```
+Registro  → Validar → Crear usuario → Login automático → Redirigir
+Login     → Validar → Intentar login → Redirigir (éxito/fallo)
+Logout    → Cerrar sesión → Redirigir
+```
+
+## Rutas necesarias
+
+```php
+// Registro
+Route::get('/register', [RegisteredUserController::class, 'create']);
+Route::post('/register', [RegisteredUserController::class, 'store']);
+
+// Login / Logout
+Route::get('/login', [SessionsController::class, 'create']);
+Route::post('/login', [SessionsController::class, 'store']);
+Route::delete('/logout', [SessionsController::class, 'destroy']);
+```
+
+## Controlador de Registro
+
+```bash
+php artisan make:controller Auth/RegisteredUserController
+```
+![Crear register controller](Images-entregable01/Authentication%202.1%20Crear%20Register%20Controller.png)
+
+
+```php
+public function create()
+{
+    return view('auth.register');
+}
+
+public function store(Request $request)
+{
+    // 1. Validar
+    $request->validate([
+        'name'     => ['required', 'string', 'max:255'],
+        'email'    => ['required', 'string', 'email', 'unique:users'],
+        'password' => ['required', 'min:8'],
+    ]);
+
+    // 2. Crear usuario (contraseña hasheada)
+    $user = User::create([
+        'name'     => $request->name,
+        'email'    => $request->email,
+        'password' => Hash::make($request->password),
+    ]);
+
+    // 3. Login automático
+    Auth::login($user);
+
+    // 4. Redirigir
+    return redirect('/ideas');
+}
+```
+
+![Nuevo Usuario](Images-entregable01/Authentication%202.2%20New%20User.png)
+
+## Controlador de Sesiones (Login/Logout)
+
+```bash
+php artisan make:controller Auth/SessionsController --resource
+```
+
+![Session Controller](Images-entregable01/Authentication%202.3%20Craer%20SessionController.png)
+```php
+// Mostrar formulario de login
+public function create()
+{
+    return view('auth.login');
+}
+
+// Intentar login
+public function store(Request $request)
+{
+    $credentials = $request->validate([
+        'email'    => ['required', 'email'],
+        'password' => ['required', 'min:8'],
+    ]);
+
+    if (Auth::attempt($credentials)) {
+        $request->session()->regenerate();
+        return redirect('/ideas');
+    }
+
+    return back()->withErrors([
+        'email' => 'The provided credentials do not match our records.',
+    ]);
+}
+
+// Cerrar sesión
+public function destroy()
+{
+    Auth::logout();
+    return redirect('/ideas');
+}
+```
+
+![Login](Images-entregable01/Authentication%202.4%20Login.png)
+
+
+## Formulario de logout
+
+```blade
+<form method="POST" action="/logout">
+    @csrf
+    @method('DELETE')
+    <button type="submit" class="btn btn-ghost">Logout</button>
+</form>
+```
+
+## Directivas Blade para autenticación
+
+```blade
+@auth
+    {{-- Solo usuarios autenticados --}}
+    <form method="POST" action="/logout">...</form>
+@else
+    {{-- Solo visitantes --}}
+    <a href="/register">Register</a>
+    <a href="/login">Login</a>
+@endauth
+
+@guest
+    {{-- Alternativa para visitantes --}}
+@endguest
+```
+
+**Nunca** almacenar contraseñas en texto plano. Siempre usar `Hash::make()`.
