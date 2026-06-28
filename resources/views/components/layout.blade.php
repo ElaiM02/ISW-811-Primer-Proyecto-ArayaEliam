@@ -3,12 +3,17 @@
 ])
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="night">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $title }}</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+<link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
     <style>
         nav {
             background-color: #333;
@@ -24,14 +29,10 @@
         }
     </style>
 </head>
-<body class="bg-gray-700 p-6 max-w-xl mx-auto">
-    <nav>
-        <a href="/">Home</a>
-        <a href="about">About Us</a>
-        <a href="contact">Contact Us</a>
-    </nav>
-    
-    <main>
+<body class="">
+    <x-nav />
+
+    <main class="max-w-3xl mx-auto mt-6">
         {{ $slot }}
     </main>
 </body>

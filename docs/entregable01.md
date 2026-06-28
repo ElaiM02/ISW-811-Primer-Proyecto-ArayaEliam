@@ -1038,3 +1038,85 @@ public function update(IdeaRequest $request, Idea $idea) { ... }
 
 ---
 ---
+
+# A Brief DaisyUI Detour
+
+## ¿Qué es DaisyUI?
+
+Es una librería de componentes para Tailwind CSS, similar a Bootstrap pero para Tailwind. Permite construir rápidamente navbars, cards, botones, formularios y más.
+
+![Pagina DaisyUI](Images-entregable01/Daisyui%201.1%20pagina%20daisy%20ui.png)
+
+## Instalación vía CDN
+
+En el archivo `layout.blade.php` agregar:
+
+```html
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@5/themes.css" rel="stylesheet" type="text/css" />
+</head>
+```
+
+## Temas
+
+Se define en la etiqueta `<html>`:
+
+```html
+<html data-theme="dark">
+<html data-theme="dracula">
+<html data-theme="coffee">
+<html data-theme="business"> 
+```
+![Navbard DaisyUI](Images-entregable01/daisyui%201.2%20temas%20y%20navbard.png)
+
+## Componentes más usados
+
+**Botón:**
+```html
+<button class="btn btn-primary">Guardar</button>
+<button class="btn btn-warning">Editar</button>
+<button class="btn btn-error">Eliminar</button>
+```
+
+**Textarea:**
+```html
+<textarea class="textarea w-full"></textarea>
+```
+
+**Card:**
+```html
+<div class="card bg-neutral">
+    <div class="card-body">
+        Contenido
+    </div>
+</div>
+```
+
+## Componente reutilizable de card
+
+Crear `components/idea-card.blade.php`:
+
+```blade
+<a href="{{ $attributes->get('href') }}" class="card bg-neutral">
+    <div class="card-body">
+        {{ $slot }}
+    </div>
+</a>
+```
+
+Uso en la vista:
+
+```blade
+@foreach($ideas as $idea)
+    <x-idea-card href="/ideas/{{ $idea->id }}">
+        {{ $idea->description }}
+    </x-idea-card>
+@endforeach
+```
+
+![Diseño de pagina](Images-entregable01/daisyui%201.3%20diseño%20de%20pagina.png)
+---
+---
