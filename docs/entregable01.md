@@ -884,3 +884,78 @@ Route::delete('/ideas/{idea}', [IdeaController::class, 'destroy']);
 ## Regla de oro
 
 Intenta siempre usar solo estas 7 acciones. Si necesitas algo diferente, crea un **nuevo controlador** en lugar de inventar nombres de acciones nuevas.
+
+---
+---
+
+# Request Validation
+
+## Por qué validar
+
+Sin validación, datos inválidos llegan hasta la base de datos y generan errores SQL. La validación debe ocurrir **antes** de persistir cualquier dato.
+
+## Validación en el controlador
+
+```php
+public function store(Request $request)
+{
+    $request->validate([
+        'description' => ['required', 'min:10'],
+    ]);
+
+    Idea::create(['description' => $request->description]);
+    return redirect('/ideas');
+}
+```
+Si la validación falla, Laravel redirige automáticamente de vuelta al formulario.
+
+## Reglas más comunes
+
+| Regla | Descripción |
+|---|---|
+| `required` | Campo obligatorio |
+| `min:10` | Mínimo de caracteres |
+| `max:255` | Máximo de caracteres |
+| `email` | Debe ser un email válido |
+| `confirmed` | Debe coincidir con otro campo |
+
+Lista completa en `laravel.com/docs/validation`
+
+## Mostrar errores en la vista
+
+**Forma larga:**
+```blade
+@if($errors->has('description'))
+    <p>{{ $errors->first('description') }}</p>
+@endif
+```
+
+**Forma corta con directiva Blade:**
+```blade
+@error('description')
+    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+@enderror
+```
+
+## Componente reutilizable de error
+
+Crear `components/form/error.blade.php`:
+
+```blade
+@props(['name'])
+
+@error($name)
+    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+@enderror
+```
+
+Uso en la vista:
+
+```blade
+<x-form.error name="description" />
+```
+
+Los errores de validación se guardan en sesión **flash** — solo están disponibles para la siguiente request y luego se borran automáticamente.
+
+---
+---

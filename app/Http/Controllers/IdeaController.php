@@ -32,6 +32,10 @@ class IdeaController extends Controller
      */
     public function store(Request $request)
     {
+        $request->validate([
+            'description' => ['required', 'min:10'],
+        ]);
+
         Idea::create([
             'description' => $request->input('description'),
             'status' => 'pending'
@@ -69,7 +73,7 @@ class IdeaController extends Controller
             'description' => $request->input('description'),
         ]);
 
-        return redirect('/ideas');
+        return redirect("/ideas/{$idea->id}");
     }
 
 
