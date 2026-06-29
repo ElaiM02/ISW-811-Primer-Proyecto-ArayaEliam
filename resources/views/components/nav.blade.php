@@ -17,6 +17,10 @@
     <ul class="menu menu-horizontal px-1">
       <li><a href="/ideas">Home</a></li>
       <li><a href="/ideas/create">New Idea</a></li>
+      @can('view-admin')
+        <li><a href="/admin">Admin</a></li>
+      @endcan
+      
     </ul>
   </div>
   <div class="navbar-end space-x-2">
@@ -29,6 +33,9 @@
     @else
       <a class="btn btn-primary" href="/register">Register</a>
       <a class="btn btn-secondary" href="/login">Login</a>
+      @can('view-admin')
+        <li><a href="/admin">Admin</a></li>
+      @endcan
     @endauth
   </div>
 </div>
