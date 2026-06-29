@@ -48,18 +48,6 @@ Gate::define('view-admin', function (User $user) {
 });
 ```
 
-## Usar Gates en Blade
-
-```blade
-@can('view-admin')
-    <a href="/admin">Admin</a>
-@endcan
-
-@cannot('view-admin')
-    <p>No tienes acceso</p>
-@endcannot
-```
-
 ## Proteger rutas con Gates
 
 **Opción 1 — En la ruta:**
@@ -100,3 +88,90 @@ Gate::define('view-admin', function (User $user) {
 | `Response::denyAsNotFound()` | 404 |
 
 Por defecto Laravel requiere un usuario autenticado para correr un Gate. Si el usuario no está logueado, retorna `false` automáticamente sin ejecutar el closure.
+
+---
+---
+
+# Authorization Using Policies
+
+## ¿Qué es una Policy?
+
+Una Policy es como un controlador para las reglas de autorización de un modelo específico. Agrupa todas las reglas de acceso relacionadas a ese modelo.
+
+## Crear una Policy
+
+```bash
+php artisan make:policy IdeaPolicy --model=Idea
+```
+
+Esto genera `app/Policies/IdeaPolicy.php`.
+
+## Definir reglas en la Policy
+
+```php
+<?php
+
+namespace App\Policies;
+
+use App\Models\Idea;
+use App\Models\User;
+use Illuminate\Auth\Access\Response;
+
+class IdeaPolicy
+{
+    // ¿Puede el usuario actualizar/modificar esta idea?
+    public function update(User $user, Idea $idea): bool
+    {
+        return $user->is($idea->user); // compara si es el mismo usuario
+        // o también: return $user->id === $idea->user_id;
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+}
+```
+
+## Usar la Policy en el controlador
+
+```php
+use Illuminate\Support\Facades\Gate;
+
+// Autorizar con Gate (lanza 403 si no autorizado)
+public function show(Idea $idea)
+{
+    Gate::authorize('update', $idea);
+    return view('ideas.show', compact('idea'));
+}
+
+// Cuando no hay instancia del modelo (create)
+public function create()
+{
+    Gate::authorize('create', Idea::class);
+    return view('ideas.create');
+}
+```
+
+## Proteger rutas con middleware
+
+```php
+Route::get('/ideas/{idea}', [IdeaController::class, 'show'])
+    ->can('update', 'idea');
+```
+
+## Diferencia entre Gates y Policies
+
+| | Gates | Policies |
+|---|---|---|
+| Uso | Reglas generales | Reglas por modelo |
+| Definición | `AppServiceProvider` | Clase dedicada |
+| Equivalente a | Route closure | Controlador |
+
+## Regla de oro
+
+Protege **todas** las acciones relevantes: `show`, `edit`, `update` y `destroy`. Un usuario no debería poder ver, editar ni eliminar recursos que no le pertenecen.
+
+---
+---
+
