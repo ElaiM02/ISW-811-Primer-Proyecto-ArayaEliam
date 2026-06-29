@@ -6,5 +6,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class Idea extends Model
 {
-    protected $fillable = ['description', 'status'];
+    protected $fillable = ['description', 'status', 'user_id',];
 }

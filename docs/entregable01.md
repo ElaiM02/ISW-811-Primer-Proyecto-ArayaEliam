@@ -1257,3 +1257,103 @@ public function destroy()
 ```
 
 **Nunca** almacenar contraseñas en texto plano. Siempre usar `Hash::make()`.
+
+---
+---
+
+# Require Authentication With Middleware
+
+## Agregar relación user_id a ideas
+
+En la migración de ideas agregar la relación con cascada:
+
+```php
+$table->foreignIdFor(\App\Models\User::class)->constrained()->cascadeOnDelete();
+```
+
+`cascadeOnDelete()` elimina automáticamente las ideas del usuario cuando este es eliminado.
+
+Luego refrescar las migraciones:
+
+```bash
+php artisan migrate:fresh
+```
+
+## Proteger rutas con Middleware
+
+```php
+// Rutas que requieren autenticación
+Route::middleware('auth')->group(function () {
+    Route::get('/ideas', [IdeaController::class, 'index']);
+    Route::get('/ideas/create', [IdeaController::class, 'create']);
+    Route::get('/ideas/{idea}', [IdeaController::class, 'show']);
+    Route::post('/ideas', [IdeaController::class, 'store']);
+    Route::get('/ideas/{idea}/edit', [IdeaController::class, 'edit']);
+    Route::patch('/ideas/{idea}', [IdeaController::class, 'update']);
+    Route::delete('/ideas/{idea}', [IdeaController::class, 'destroy']);
+    Route::delete('/logout', [SessionsController::class, 'destroy']);
+});
+
+// Rutas solo para visitantes (no autenticados)
+Route::middleware('guest')->group(function () {
+    Route::get('/register', [RegisteredUserController::class, 'create']);
+    Route::post('/register', [RegisteredUserController::class, 'store']);
+    Route::get('/login', [SessionsController::class, 'create']);
+    Route::post('/login', [SessionsController::class, 'store']);
+});
+```
+
+## Configurar redirecciones en bootstrap/app.php
+
+```php
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->redirectGuestTo('/login');
+    $middleware->redirectUsersTo('/ideas');
+})
+```
+
+## Asignar idea al usuario autenticado
+
+En `IdeaController` al crear una idea:
+
+```php
+public function store(Request $request)
+{
+    $request->validate([
+        'description' => ['required', 'min:10'],
+    ]);
+
+    Idea::create([
+        'description' => $request->input('description'),
+        'status'      => 'pending',
+        'user_id'     => Auth::id(), // usuario autenticado
+    ]);
+
+    return redirect('/ideas');
+}
+```
+
+## Filtrar ideas por usuario autenticado
+
+```php
+public function index()
+{
+    $ideas = Idea::where('user_id', Auth::id())->get();
+    return view('ideas.index', ['ideas' => $ideas]);
+}
+```
+
+## Crear usuario de prueba con Tinker
+
+```bash
+php artisan tinker
+```
+
+![Tinker User](Images-entregable01/Auth%20Middleware%202.1%20Usuario%20con%20tnker.png)
+
+```php
+User::factory()->create(); // crea un usuario con datos falsos
+```
+
+---
+---
