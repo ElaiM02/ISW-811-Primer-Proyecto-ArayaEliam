@@ -175,3 +175,83 @@ Protege **todas** las acciones relevantes: `show`, `edit`, `update` y `destroy`.
 ---
 ---
 
+
+# Digging Deeper
+# Bundling de Assets con Vite en Laravel
+
+## ¿Por qué usar Vite en lugar de CDN?
+
+El CDN es útil para demos, pero en producción se recomienda instalar los paquetes localmente y compilarlos para optimizar el tamaño de los archivos.
+
+## Configuración inicial
+
+Laravel incluye `vite.config.js` por defecto:
+
+```js
+import { defineConfig } from 'vite';
+import laravel from 'laravel-vite-plugin';
+
+export default defineConfig({
+    plugins: [
+        laravel({
+            input: ['resources/css/app.css', 'resources/js/app.js'],
+            refresh: true,
+        }),
+    ],
+});
+```
+
+## Instalar dependencias
+
+```bash
+npm install
+```
+
+## Instalar DaisyUI localmente
+
+```bash
+npm install daisyui
+```
+![Instalar DaisyUI](Images-entregable02/Vite%203.2%20Instalar%20Daisyui.png)
+En `resources/css/app.css`:
+
+```css
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* Colores personalizados */
+@theme {
+    --color-primary: #your-color;
+}
+```
+
+![Color letra](Images-entregable02/Vite%203.1%20Color%20de%20la%20letra.png)
+
+## Reemplazar CDN por directiva Blade
+
+En `layout.blade.php` reemplazar los links del CDN por:
+
+```blade
+@vite(['resources/css/app.css', 'resources/js/app.js'])
+```
+
+## Comandos principales
+
+```bash
+# Desarrollo con hot reload (refresca el browser automáticamente)
+npm run dev
+
+# Producción (compila y optimiza los archivos)
+npm run build
+```
+
+## JavaScript personalizado
+
+En `resources/js/app.js`:
+
+```js
+// Aquí va tu JavaScript personalizado
+// También puedes usar frameworks como Vue o React
+```
+
+Si tus cambios de CSS no se reflejan en el navegador, probablemente olvidaste correr `npm run dev`.
