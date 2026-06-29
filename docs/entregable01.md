@@ -1357,3 +1357,80 @@ User::factory()->create(); // crea un usuario con datos falsos
 
 ---
 ---
+
+# Relaciones Eloquent en Laravel
+
+## Tipos de relaciones
+
+Un **idea** pertenece a un **usuario** y un **usuario** puede tener muchas **ideas**:
+
+```
+Idea  →  belongsTo  →  User
+User  →  hasMany    →  Idea
+```
+
+## Definir las relaciones en los modelos
+
+**En `app/Models/Idea.php`:**
+```php
+public function user()
+{
+    return $this->belongsTo(User::class);
+}
+```
+
+**En `app/Models/User.php`:**
+```php
+public function ideas()
+{
+    return $this->hasMany(Idea::class);
+}
+```
+
+## Acceder a las relaciones
+
+```php
+// Obtener el usuario de una idea
+$idea = Idea::find(1);
+$idea->user;        // instancia del usuario
+$idea->user->name;  // nombre del usuario
+
+// Obtener las ideas de un usuario
+$user = User::find(1);
+$user->ideas;          // colección de ideas
+$user->ideas[0];       // primera idea
+$user->ideas[0]->description; // descripción
+```
+
+## Refactorizar el controlador
+
+```php
+// Antes
+$ideas = Idea::where('user_id', Auth::id())->get();
+
+// Después (usando la relación)
+$ideas = Auth::user()->ideas;
+```
+
+## Crear una idea a través de la relación
+
+```php
+// Antes
+Idea::create([
+    'description' => $request->input('description'),
+    'status'      => 'pending',
+    'user_id'     => Auth::id(),
+]);
+
+// Después (el user_id se asigna automáticamente)
+Auth::user()->ideas()->create([
+    'description' => $request->input('description'),
+    'status'      => 'pending',
+]);
+```
+
+Nota: Al crear a través de la relación se usa `ideas()` como **método**, no como propiedad, para construir la query.
+
+## Problema de seguridad
+
+Con las relaciones definidas, un usuario puede ver ideas de otros usuarios simplemente cambiando el ID en la URL (`/ideas/1`). Esto se soluciona con **autorización**, verificando que el usuario autenticado sea el dueño de la idea antes de mostrarla.
