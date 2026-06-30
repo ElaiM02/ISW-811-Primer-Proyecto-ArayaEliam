@@ -177,7 +177,6 @@ Protege **todas** las acciones relevantes: `show`, `edit`, `update` y `destroy`.
 
 
 # Digging Deeper
-# Bundling de Assets con Vite en Laravel
 
 ## ¿Por qué usar Vite en lugar de CDN?
 
@@ -255,3 +254,126 @@ En `resources/js/app.js`:
 ```
 
 Si tus cambios de CSS no se reflejan en el navegador, probablemente olvidaste correr `npm run dev`.
+
+---
+---
+
+# Notificaciones en Laravel
+
+## ¿Qué son las notificaciones?
+
+Permiten notificar a un usuario cuando ocurre algo en la aplicación (nuevo registro, pago, publicación, etc.). Se pueden enviar por email, base de datos, SMS, entre otros.
+
+## Configuración inicial
+
+Crear la tabla de notificaciones:
+
+```bash
+php artisan make:notifications-table
+php artisan migrate
+```
+![Crear tabla notifications](Images-entregable02/Notifications%203.1%20Crear%20tabla%20notifications.png)
+
+## Crear una notificación
+
+```bash
+php artisan make:notification IdeaPublished
+```
+
+![Crear notifications](Images-entregable02/Notifications%203.2%20crear%20notificacion.png)
+
+Esto genera `app/Notifications/IdeaPublished.php`:
+
+```php
+class IdeaPublished extends Notification
+{
+    public function __construct(public Idea $idea) {}
+
+    // Canal de envío
+    public function via(object $notifiable): array
+    {
+        return ['mail']; // email, database, sms
+    }
+
+    // Estructura del email
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->greeting('¡Hola!')
+            ->line('Publicaste una nueva idea: ' . $this->idea->description)
+            ->action('Leerla', url('/ideas/' . $this->idea->id))
+            ->line('Gracias por usar nuestra app.');
+    }
+}
+```
+
+## Enviar la notificación en el controlador
+
+```php
+use App\Notifications\IdeaPublished;
+
+public function store(StoreIdeaRequest $request)
+{
+    $idea = Auth::user()->ideas()->create([
+        'description' => $request->input('description'),
+        'status'      => 'pending',
+    ]);
+
+    // Notificar al usuario
+    Auth::user()->notify(new IdeaPublished($idea));
+
+    return redirect('/ideas');
+}
+```
+
+## El trait Notifiable
+
+El modelo `User` ya incluye el trait `Notifiable` por defecto:
+
+```php
+class User extends Authenticatable
+{
+    use Notifiable; // ← permite usar ->notify()
+}
+```
+
+## Configuración de email en `.env`
+
+**Para desarrollo local con Mailpit:**
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=localhost
+MAIL_PORT=1025
+MAIL_FROM_ADDRESS=admin@tuapp.com
+```
+
+**Por defecto Laravel registra emails en:**
+```
+storage/logs/laravel.log
+```
+
+## Probar desde Tinker
+
+```bash
+php artisan tinker
+```
+
+```php
+$user = User::find(1);
+$idea = Idea::latest()->first();
+$user->notify(new \App\Notifications\IdeaPublished($idea));
+
+// Ver notificaciones del usuario
+$user->notifications;
+$user->unreadNotifications;
+```
+
+![Mailpit](Images-entregable02/Notifications%203.3%20Mailpit.png)
+## Canales disponibles
+
+| Canal | Descripción |
+|---|---|
+| `mail` | Envío por email |
+| `database` | Notificaciones en sitio |
+| `vonage` | SMS |
+| Comunidad | Docenas de drivers adicionales |
