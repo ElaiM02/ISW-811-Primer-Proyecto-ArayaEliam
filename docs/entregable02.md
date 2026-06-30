@@ -377,3 +377,92 @@ $user->unreadNotifications;
 | `database` | Notificaciones en sitio |
 | `vonage` | SMS |
 | Comunidad | Docenas de drivers adicionales |
+
+---
+---
+
+# Colas y Jobs en Laravel
+
+## ¿Por qué usar colas?
+
+Las colas permiten ejecutar tareas largas **en segundo plano** sin hacer esperar al usuario. Ejemplo: enviar 50 emails a un equipo no debería bloquear la respuesta al usuario.
+
+## Conceptos clave
+
+| Término | Analogía | Descripción |
+|---|---|---|
+| **Job** | Orden de pizza | La tarea que necesita hacerse |
+| **Queue** | Pila de órdenes | Contenedor que almacena los jobs |
+| **Worker** | El pizzero | Quien toma y ejecuta los jobs |
+
+## Convertir una notificación en queued
+
+Solo implementar la interfaz `ShouldQueue`:
+
+```php
+use Illuminate\Contracts\Queue\ShouldQueue;
+
+class IdeaPublished extends Notification implements ShouldQueue
+{
+    // Sin cambios adicionales, Laravel la encola automáticamente
+}
+```
+
+![Queue work](Images-entregable02/queue%203.1%20Queue%20work.png)
+
+## Crear un Job
+
+```bash
+php artisan make:job UpdateIdeaStatistics
+```
+
+Esto genera `app/Jobs/UpdateIdeaStatistics.php`:
+
+![Queue UpdateIdeaStatistics](Images-entregable02/queue%203.2%20Crear%20updateideastatistics.png)
+
+```php
+class UpdateIdeaStatistics implements ShouldQueue
+{
+    public function handle(): void
+    {
+        // Tarea larga que se ejecuta en segundo plano
+        logger('El job está siendo procesado');
+    }
+}
+```
+
+## Despachar un Job
+
+```php
+UpdateIdeaStatistics::dispatch();
+```
+
+## Configurar el driver de cola en `.env`
+
+```env
+QUEUE_CONNECTION=database  # guarda los jobs en la base de datos
+# QUEUE_CONNECTION=sync    # ejecuta inmediatamente (sin cola real)
+```
+
+## Correr un worker
+
+```bash
+# Inicia un worker que procesa los jobs
+php artisan queue:work
+
+# Para más rendimiento, abrir múltiples terminales
+php artisan queue:work  # terminal 1
+php artisan queue:work  # terminal 2
+php artisan queue:work  # terminal 3
+```
+
+## Comandos útiles de cola
+
+```bash
+php artisan queue:work    # procesar jobs
+php artisan queue:retry   # reintentar jobs fallidos
+php artisan queue:monitor # monitorear el tamaño
+php artisan queue:clear   # limpiar la cola
+```
+
+Poner un job en la cola **no significa que se procese**. Necesitas tener un worker corriendo para que los jobs se ejecuten.

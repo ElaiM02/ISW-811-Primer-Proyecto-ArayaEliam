@@ -6,7 +6,7 @@
 @source '../**/*.js';
 
 @plugin "daisyui" {
-    themes: dracula
+    themes: sunset --default
 }
 
 @theme {
