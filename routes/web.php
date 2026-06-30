@@ -6,9 +6,14 @@ use App\Http\Controllers\IdeaController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Gate;
 use App\Models\Idea;
-
+/*
 Route::get('/', function (){
     return redirect('/ideas');
+});
+*/
+
+Route::get('/', function() {
+    return 'Welcome to the home page';
 });
 
 Route::middleware('auth')->group(function () {

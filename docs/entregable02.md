@@ -466,3 +466,62 @@ php artisan queue:clear   # limpiar la cola
 ```
 
 Poner un job en la cola **no significa que se procese**. Necesitas tener un worker corriendo para que los jobs se ejecuten.
+
+---
+---
+
+# Testing con Pest PHP en Laravel
+
+## Instalación
+
+Si el proyecto se creó con Pest desde cero:
+
+```bash
+laravel new ejemplo --pest
+```
+
+Si se necesita instalar después:
+
+```bash
+composer require pestphp/pest --dev --with-all-dependencies
+php artisan pest:install
+```
+
+## Tipos de test
+
+| Tipo | Alcance | Ejemplo |
+|---|---|---|
+| **Unit** | Específico, una clase/método | Instanciar una clase y verificar un valor |
+| **Feature/Browser** | Amplio, simula al usuario real | Abrir el navegador, llenar un formulario, verificar redirección |
+
+Para principiantes se recomienda empezar con **Feature/Browser tests**, ya que reproducen lo que normalmente harías manualmente.
+
+## Instalar testing con navegador (Playwright)
+
+```bash
+composer require pestphp/pest-plugin-browser --dev
+php artisan pest:install
+```
+
+Agregar a `.gitignore`:
+
+```
+tests/browser/.playwright
+```
+
+## Configuración base
+
+En `tests/Pest.php` asegúrate que los tests del navegador extiendan `TestCase`:
+
+```php
+uses(TestCase::class, RefreshDatabase::class)->in('browser');
+```
+
+## Ejemplo de test simple
+
+```php
+test('muestra la página principal', function () {
+    $page = visit('/');
+    $page->assertSee('Welcome');
+});
+```
