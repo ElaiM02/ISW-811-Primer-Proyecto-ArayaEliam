@@ -466,3 +466,101 @@ php artisan queue:clear   # limpiar la cola
 ```
 
 Poner un job en la cola **no significa que se procese**. Necesitas tener un worker corriendo para que los jobs se ejecuten.
+
+# How to Get Started Testing Your Code (Testing con Pest PHP)
+
+Pest es un framework de testing sobre PHPUnit, con sintaxis más limpia. Laravel ya lo incluye. Sirve para automatizar las pruebas que hacemos manualmente en el navegador.
+
+## Correr los tests
+
+```bash
+php artisan test      # usa Pest por debajo
+vendor/bin/pest       # binario directo
+```
+
+## Unit vs Feature Tests
+
+- **Unit:** muy puntual y de bajo nivel (instancio una clase, llamo un método, espero un resultado).
+- **Feature / browser:** amplio (abro el navegador, envío el formulario, espero quedar autenticado). Se recomienda empezar por estos.
+
+## Feature test básico
+
+```php
+it('returns a successful response', function () {
+    $this->get('/')->assertStatus(200);
+});
+```
+
+Si la ruta no existe, falla con 404. En este proyecto `/` redirige a `/ideas`.
+
+![Feature test básico](Images-entregable02/Testing%201.1%20feature%20test.png)
+
+## Browser testing (referencia del video)
+
+Pest puede abrir un navegador real usando `visit()` en lugar de `get()` (wrapper sobre Playwright):
+
+```php
+it('registers a user', function () {
+    visit('/register')
+        ->fill('name', 'Jane Doe')
+        ->fill('email', 'jane@example.com')
+        ->fill('password', 'password123')
+        ->press('@register-button')   // data-test, no el texto
+        ->assertPath('/ideas');
+
+    $this->assertAuthenticated();
+});
+```
+
+**Problema típico:** presionar por texto (`Register`) hace clic en el primer botón de la página (navbar). Solución: identificar el botón con `data-test` y accederlo con el prefijo `@`.
+
+```blade
+<button type="submit" data-test="register-button">Register</button>
+```
+
+> ⚠️ El browser testing con `visit()` requiere **Pest 4 / PHP 8.3**. Tu VM usa **PHP 8.2**, así que esta parte queda solo como referencia; para las evidencias se usan los feature tests de abajo.
+
+## Código usado en la VM (Pest 3 / PHP 8.2)
+
+Los feature tests reproducen las mismas aserciones sin abrir navegador. Se usa SQLite en memoria para no borrar la base `lfts` (en `phpunit.xml`):
+
+```xml
+<env name="DB_CONNECTION" value="sqlite"/>
+<env name="DB_DATABASE" value=":memory:"/>
+```
+
+`tests/Feature/IdeaTest.php`:
+
+```php
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+it('registers a user', function () {
+    $this->post('/register', [
+        'name' => 'Jane Doe',
+        'email' => 'jane@example.com',
+        'password' => 'password123',
+    ])->assertRedirect('/ideas');
+
+    $this->assertAuthenticated();
+});
+
+it('shows all ideas', function () {
+    $user = User::factory()->create();
+    $user->ideas()->create(['description' => 'Build a thing', 'status' => 'pending']);
+
+    $this->actingAs($user)->get('/ideas')->assertSee('Build a thing');
+});
+```
+
+Ejecutar y capturar el resultado en verde:
+
+```bash
+vendor/bin/pest
+```
+
+![Tests en verde](Images-entregable02/Testing%201.2%20tests%20en%20verde.png)
+
+**Equivalencias:** `visit()->fill()->press()` ↔ `post()`; `assertPath()` ↔ `assertRedirect()`; `assertSee()` igual en ambos.
