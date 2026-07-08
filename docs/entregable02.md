@@ -493,8 +493,6 @@ it('returns a successful response', function () {
 
 Si la ruta no existe, falla con 404. En este proyecto `/` redirige a `/ideas`.
 
-![Feature test básico](Images-entregable02/Testing%201.1%20feature%20test.png)
-
 ## Browser testing (referencia del video)
 
 Pest puede abrir un navegador real usando `visit()` en lugar de `get()` (wrapper sobre Playwright):
@@ -518,7 +516,7 @@ it('registers a user', function () {
 <button type="submit" data-test="register-button">Register</button>
 ```
 
-> ⚠️ El browser testing con `visit()` requiere **Pest 4 / PHP 8.3**. Tu VM usa **PHP 8.2**, así que esta parte queda solo como referencia; para las evidencias se usan los feature tests de abajo.
+> El browser testing con `visit()` requiere **Pest 4 / PHP 8.3**. Tu VM usa **PHP 8.2**, así que esta parte queda solo como referencia; para las evidencias se usan los feature tests de abajo.
 
 ## Código usado en la VM (Pest 3 / PHP 8.2)
 
@@ -561,6 +559,84 @@ Ejecutar y capturar el resultado en verde:
 vendor/bin/pest
 ```
 
-![Tests en verde](Images-entregable02/Testing%201.2%20tests%20en%20verde.png)
-
 **Equivalencias:** `visit()->fill()->press()` ↔ `post()`; `assertPath()` ↔ `assertRedirect()`; `assertSee()` igual en ambos.
+
+---
+---
+
+# Final Project Setup (Configuración del proyecto final)
+
+Se arranca el proyecto final: una app para **coleccionar ideas** (aquí, posibles cursos). Soporta autenticación, flash messaging, notificaciones, filtrado por estado (completadas / en progreso / pendientes), descripción con markdown, imágenes, tareas ("steps"), links, validación y perfil de usuario. Es simple de entender pero completa para cubrir todo el proceso de construir una app con Laravel.
+
+## Crear la app y subirla a GitHub
+
+```bash
+laravel new idea      # crear proyecto (con Pest)
+cd idea
+
+git init
+git add .
+git commit -m "initial commit"
+
+git remote add origin <url-del-repo>
+git push -u origin main
+```
+
+## Despliegue con Laravel Forge (referencia)
+
+Se muestra el deploy a producción con **Laravel Forge** (forge.laravel.com): crear servidor, conectar el repositorio de GitHub, configurar base de datos, instalar dependencias, correr migraciones y desplegar. En segundos el sitio queda en línea. *(En este curso el despliegue es en tu VM, así que esta parte es solo de referencia.)*
+
+## Herramientas de desarrollo (tooling)
+
+### Laravel Pint (formateo de código)
+
+Pint viene como dependencia de desarrollo. Es un formateador de estilo con opinión (comillas simples, coma final, llaves en su lugar, etc.):
+
+```bash
+vendor/bin/pint
+```
+
+### Scripts de Composer
+
+En `composer.json` se pueden crear scripts propios. Ejemplo de un alias `format`:
+
+```json
+"scripts": {
+    "format": [
+        "rector",
+        "pint"
+    ]
+}
+```
+
+```bash
+composer run format
+```
+
+### Rector (modernizar el código)
+
+Rector escana y actualiza el código PHP (agrega tipos, `declare(strict_types=1)`, early returns, elimina código muerto):
+
+```bash
+composer require rector/rector --dev
+composer require driftingly/rector-laravel --dev   # reglas específicas de Laravel
+vendor/bin/rector                                   # aplica los cambios
+```
+
+Genera un `rector.php` en la raíz donde se configuran las rutas, reglas a omitir y los *sets* (por ejemplo el set de Laravel y `strict types`).
+
+### CodeRabbit y Laravel Boost (opcionales)
+
+- **CodeRabbit:** revisiones de código automáticas por commit (detecta vulnerabilidades y malas prácticas).
+- **Laravel Boost:** paquete oficial que da contexto del proyecto a asistentes de IA vía servidores MCP.
+
+```bash
+composer require laravel/boost --dev
+php artisan boost:install
+```
+
+## Resumen del flujo
+
+Crear proyecto → inicializar Git → subir a GitHub → desplegar (Forge / VM) → configurar tooling (Pint, Rector, scripts de Composer) → opcionalmente CodeRabbit y Laravel Boost. No es obligatorio usar todo; es el flujo recomendado para un proyecto real.
+
+![Tooling configurado](Images-entregable02/Final%20Project%20Setup%204.1%20tooling%20configuration.png)

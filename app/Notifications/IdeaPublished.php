@@ -8,7 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class IdeaPublished extends Notification implements ShouldQueue 
+class IdeaPublished extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -35,7 +35,8 @@ class IdeaPublished extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $url = url('/ideas/' .$this->idea->id);
+        $url = url('/ideas/'.$this->idea->id);
+
         return (new MailMessage)
             ->greeting('Hello')
             ->line('You published a new idea.')

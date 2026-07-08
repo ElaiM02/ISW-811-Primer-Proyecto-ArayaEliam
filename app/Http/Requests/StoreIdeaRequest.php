@@ -13,7 +13,7 @@ class StoreIdeaRequest extends FormRequest
     public function authorize(): bool
     {
         return true;
-        
+
     }
 
     /**
@@ -36,5 +36,3 @@ class StoreIdeaRequest extends FormRequest
         ];
     }
 }
-
-

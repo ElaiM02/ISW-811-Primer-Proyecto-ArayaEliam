@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Auth;
 
-use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class SessionsController extends Controller
 {
@@ -28,6 +28,7 @@ class SessionsController extends Controller
 
         if (Auth::attempt($validated)) {
             $request->session()->regenerate();
+
             return redirect('/ideas');
         }
 
@@ -42,6 +43,7 @@ class SessionsController extends Controller
     public function destroy()
     {
         Auth::logout();
+
         return redirect('/ideas');
     }
 }

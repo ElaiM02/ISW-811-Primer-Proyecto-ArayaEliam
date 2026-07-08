@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Idea;
 use App\Http\Requests\StoreIdeaRequest;
+use App\Models\Idea;
 use App\Notifications\IdeaPublished;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Database\Eloquent\Model\User;
 use Illuminate\Support\Facades\Gate;
 
 class IdeaController extends Controller
@@ -41,7 +39,7 @@ class IdeaController extends Controller
         $idea = Auth::user()->ideas()->create([
             'description' => $request->input('description'),
             'status' => 'pending',
-            'user_id'=> Auth::id(),
+            'user_id' => Auth::id(),
         ]);
         Auth::user()->notify(new IdeaPublished($idea));
 
@@ -56,7 +54,7 @@ class IdeaController extends Controller
         Gate::authorize('update', $idea);
 
         return view('ideas.show', [
-            'idea' => $idea
+            'idea' => $idea,
         ]);
     }
 
@@ -68,7 +66,7 @@ class IdeaController extends Controller
         Gate::authorize('update', $idea);
 
         return view('ideas.edit', [
-            'idea' => $idea
+            'idea' => $idea,
         ]);
     }
 
@@ -79,7 +77,6 @@ class IdeaController extends Controller
     {
         Gate::authorize('update', $idea);
 
-
         $idea->update([
             'description' => $request->input('description'),
         ]);
@@ -87,12 +84,12 @@ class IdeaController extends Controller
         return redirect("/ideas/{$idea->id}");
     }
 
-
     public function destroy(Idea $idea)
     {
         Gate::authorize('update', $idea);
 
         $idea->delete();
+
         return redirect('/ideas');
     }
 }

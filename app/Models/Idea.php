@@ -7,10 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Idea extends Model
 {
-    protected $fillable = ['description', 'status', 'user_id',];
+    protected $fillable = ['description', 'status', 'user_id'];
 
     public function user(): BelongsTo
-{
-    return $this->belongsTo(User::class);
-}
+    {
+        return $this->belongsTo(User::class);
+    }
 }
