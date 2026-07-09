@@ -1122,3 +1122,100 @@ vendor/bin/pest
 
 ---
 ---
+
+# Flash Messaging and Interactivity with AlpineJS (Mensajes flash e interactividad)
+
+Se muestran los **mensajes flash** (avisos temporales guardados en sesión) y se agrega interactividad ligera con **AlpineJS**, que se usa para ocultar automáticamente el mensaje después de unos segundos.
+
+## Mostrar el mensaje flash
+
+El controlador ya guarda un mensaje en sesión (`->with('success', 'You are now logged in')`). Para mostrarlo, en el layout:
+
+```blade
+@if (session('success'))
+    <div>{{ session('success') }}</div>
+@endif
+```
+
+> El mensaje flash solo existe **para la siguiente petición**: al refrescar la página desaparece.
+
+## Estilizar el banner
+
+Se posiciona en la esquina inferior derecha:
+
+```blade
+@if (session('success'))
+    <div class="fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg">
+        {{ session('success') }}
+    </div>
+@endif
+```
+
+## Instalar AlpineJS
+
+En lugar de Vue o React (más pesados), se usa **AlpineJS**, el "jQuery moderno": permite agregar comportamiento y transiciones inline.
+
+```bash
+npm install alpinejs
+```
+
+![Instalar alpinejs](Images-entregable02/Mensaje%20Flash%204.2%20instalar%20alpinejs.png)
+
+
+En `resources/js/app.js`:
+
+```js
+import Alpine from 'alpinejs';
+
+window.Alpine = Alpine;
+Alpine.start();
+```
+
+## Conceptos básicos de Alpine
+
+| Directiva | Función |
+|---|---|
+| `x-data` | Define un componente y sus datos |
+| `x-text` | Enlaza el texto de un elemento a un dato |
+| `x-model` | Enlace bidireccional (input ↔ dato) |
+| `x-show` | Muestra/oculta según un booleano |
+| `x-init` | Ejecuta código al montar el componente |
+| `@click` | Escucha el evento click (alias de `x-on:click`) |
+
+Ejemplo:
+
+```blade
+<div x-data="{ show: true }">
+    <p x-show="show">Puedes verme</p>
+    <button @click="show = false">Ocultar</button>
+</div>
+```
+
+## Ocultar el flash automáticamente
+
+Se convierte el banner en un componente Alpine que, al montarse, espera 3 segundos y se oculta, con una transición de opacidad:
+
+```blade
+@if (session('success'))
+    <div
+        x-data="{ show: true }"
+        x-init="setTimeout(() => show = false, 3000)"
+        x-show="show"
+        x-transition.opacity.duration.300ms
+        class="fixed bottom-4 right-4 bg-primary text-white px-4 py-2 rounded-lg"
+    >
+        {{ session('success') }}
+    </div>
+@endif
+```
+
+- `x-init` con `setTimeout` cambia `show` a `false` tras 3000 ms.
+- `x-show` reacciona y aplica `display: none`.
+- `x-transition.opacity` hace el fade out suave.
+
+No olvides tener `npm run dev` corriendo para que se compile el JS.
+
+![Mensaje flash ](Images-entregable02/Mensaje%20Flash%204.1%20Mensaje%20al%20momento%20de%20hacer%20login.png)
+
+---
+---

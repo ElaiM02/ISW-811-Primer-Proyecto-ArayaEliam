@@ -21,20 +21,20 @@ class SessionsController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $attributes = $request->validate([
             'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:6'],
         ]);
 
-        if (Auth::attempt($validated)) {
-            $request->session()->regenerate();
-
-            return redirect('/ideas');
+        if (! Auth::attempt($attributes)) {
+            return back()->withErrors([
+                'email' => 'The provided credentials do not match our records.',
+            ]);
         }
 
-        return back()->withErrors([
-            'email' => 'The provided credentials do not match our records.',
-        ]);
+        $request->session()->regenerate();
+        return redirect()->intended('/ideas')
+            ->with('success', 'You are now logged in!');
     }
 
     /**
