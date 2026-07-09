@@ -805,5 +805,187 @@ it('can have steps', function () {
 ```
 
 Los tests van guiando el diseño: si falla porque `completed` no puede ser null, se agrega el default en la migración y en `$attributes`.
+
+---
+---
+
+# Tailwind Theme Setup And Initial UI (Tema y UI inicial)
+
+Se arma la base visual: tema de Tailwind, componentes CSS y Blade reutilizables, layout con navbar y las páginas de registro / login con su lógica de autenticación.
+
+## Tema de Tailwind (variables CSS)
+
+En Tailwind v4 las variables de `@theme` se convierten automáticamente en clases (`text-primary`, `bg-primary`, `border-primary`, etc.). En `resources/css/app.css`:
+
+```css
+@import "tailwindcss";
+
+@theme {
+    --color-background: #0d1117;
+    --color-foreground: #e6edf3;
+    --color-card: #161b22;
+    --color-border: #30363d;
+    --color-primary: #3fb950; /* verde */
+}
+```
+
+## Componentes CSS (button y form)
+
+En `resources/css/components/` se crean archivos con clases reutilizables usando las variables del tema:
+
+```css
+/* components/button.css */
+.btn {
+    background-color: var(--color-primary);
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    /* variantes: .btn-outline, .btn-ghost ... */
+}
+```
+
+Se importan indicando la capa (`layer`) para que las utilidades (`mt-4`, etc.) puedan sobrescribirlos:
+
+```css
+@import "./components/button.css" layer(components);
+@import "./components/form.css" layer(components);
+```
+
+Compilar en modo watch:
+
+```bash
+npm run dev
+```
+
+## Layout principal
+
+`resources/views/components/layouts/idea.blade.php`:
+
+```blade
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Idea</title>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+</head>
+<body class="bg-background text-foreground">
+    <x-layouts.nav />
+    <main class="max-w-5xl mx-auto p-4">
+        {{ $slot }}
+    </main>
+</body>
+</html>
+```
+
+> Sin `@vite(...)` no se aplican los estilos (era el error de "no se ve el color de fondo").
+
+## Componente de navegación
+
+`resources/views/components/layouts/nav.blade.php` con logo + links, usando `flex items-center justify-between` para separar logo (izquierda) y links (derecha):
+
+```blade
+<nav class="border-b h-16 max-w-5xl mx-auto flex items-center justify-between">
+    <a href="/"><img src="/images/logo.png" width="100" alt="Idea logo"></a>
+
+    <div class="flex items-center gap-5">
+        @auth
+            <form method="POST" action="/logout">@csrf<button>Log out</button></form>
+        @else
+            <a href="/login">Sign in</a>
+            <a href="/register" class="btn">Register</a>
+        @endauth
+    </div>
+</nav>
+```
+
+## Componentes Blade reutilizables para formularios
+
+**Formulario centrado** (`components/form/form.blade.php`) con slots `title` y `description`:
+
+```blade
+@props(['title', 'description'])
+<div class="min-h-[80vh] flex flex-col justify-center max-w-md mx-auto">
+    <h1 class="text-2xl font-bold">{{ $title }}</h1>
+    <p class="text-sm">{{ $description }}</p>
+    {{ $slot }}
+</div>
+```
+
+**Campo de formulario** (`components/form/field.blade.php`) con label, name, type (default text) y merge de atributos:
+
+```blade
+@props(['label', 'name', 'type' => 'text'])
+<div>
+    <label for="{{ $name }}">{{ $label }}</label>
+    <input type="{{ $type }}" name="{{ $name }}" id="{{ $name }}"
+           value="{{ old($name) }}" {{ $attributes }} />
+    @error($name) <p class="error">{{ $message }}</p> @enderror
+</div>
+```
+
+> `old($name)` recuerda lo que el usuario escribió si la validación falla.
+
+## Página de registro
+
+```blade
+<x-layouts.idea>
+    <x-form title="Register an account" description="Start tracking your ideas today">
+        <form method="POST" action="/register" class="space-y-4">
+            @csrf
+            <x-form.field label="Name" name="name" />
+            <x-form.field label="Email" name="email" type="email" />
+            <x-form.field label="Password" name="password" type="password" />
+            <button type="submit" class="btn w-full">Create account</button>
+        </form>
+    </x-form>
+</x-layouts.idea>
+```
+
+## Rutas y controladores de auth
+
+```php
+Route::get('/register', [RegisteredUserController::class, 'create'])->middleware('guest');
+Route::post('/register', [RegisteredUserController::class, 'store'])->middleware('guest');
+Route::get('/login', [SessionController::class, 'create'])->middleware('guest');
+Route::post('/login', [SessionController::class, 'store'])->middleware('guest');
+Route::post('/logout', [SessionController::class, 'destroy'])->middleware('auth');
+```
+
+**Registro** (`RegisteredUserController@store`):
+
+```php
+$attributes = $request->validate([
+    'name' => ['required', 'string', 'max:255'],
+    'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+    'password' => ['required', 'min:6'],
+]);
+
+$user = User::create($attributes); // el password se hashea solo (cast 'hashed' en Laravel 12)
+Auth::login($user);
+
+return redirect('/')->with('success', 'Registration complete');
+```
+
+> En Laravel 12 el modelo `User` ya castea `password` a `hashed`, así que **no** hay que llamar `bcrypt()` manualmente.
+
+**Login** (`SessionController@store`):
+
+```php
+$attributes = $request->validate([
+    'email' => ['required', 'email'],
+    'password' => ['required'],
+]);
+
+if (! Auth::attempt($attributes)) {
+    return back()
+        ->withInput()
+        ->withErrors(['password' => 'No pudimos autenticar con esas credenciales.']);
+}
+
+request()->session()->regenerate(); // buena práctica de seguridad
+return redirect()->intended('/')->with('success', 'You are now logged in');
+```
+
+![UI de registro/login](Images-entregable02/Tailwind%204.1%20Vista.png)
+
 ---
 ---
