@@ -989,3 +989,136 @@ return redirect()->intended('/')->with('success', 'You are now logged in');
 
 ---
 ---
+
+# Browser Testing Registration Forms With Pest (Probar el registro con Pest)
+
+Si un usuario no puede registrarse o iniciar sesión, es un problema grave. Por eso se escriben tests para el registro, login y logout usando el browser testing de Pest (`visit()`), siguiendo el patrón **AAA** (Arrange, Act, Assert) y probando tanto el *happy path* como el *unhappy path*.
+
+## Preparar (referencia del video)
+
+```bash
+composer require pestphp/pest-plugin-browser --dev
+```
+
+Se renombra `tests/Feature` a `tests/Browser` y se actualiza `tests/Pest.php` para apuntar a esa carpeta con `RefreshDatabase`.
+
+## Test de registro (browser)
+
+```php
+it('registers a user', function () {
+    visit('/register')
+        ->fill('name', 'John Doe')
+        ->fill('email', 'john@example.com')
+        ->fill('password', 'password123')
+        ->click('Create account')
+        ->assertPath('/')
+        ->assertAuthenticated();
+
+    expect(auth()->user())->toMatchArray([
+        'name' => 'John Doe',
+        'email' => 'john@example.com',
+    ]);
+});
+```
+
+## Test de login (browser)
+
+Como cada test refresca la BD, la tabla `users` está vacía → hay que **crear** el usuario primero (Arrange):
+
+```php
+it('logs in a user', function () {
+    $user = User::factory()->create(['password' => 'password123']);
+
+    visit('/login')
+        ->fill('email', $user->email)
+        ->fill('password', 'password123')
+        ->click('@login-button')
+        ->assertPath('/')
+        ->assertAuthenticated();
+});
+```
+El prefijo `@` apunta a `data-test="login-button"`, evitando que Pest haga clic en un link "Sign in" del navbar.
+
+## Test de logout (browser)
+
+```php
+it('logs out a user', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user);
+
+    visit('/')
+        ->click('Log out')
+        ->assertGuest();
+});
+```
+
+## Unhappy path (validación)
+
+```php
+it('requires a valid email', function () {
+    visit('/register')
+        ->fill('name', 'John')
+        ->fill('email', 'no-es-email')
+        ->click('Create account')
+        ->assertPath('/register'); // no avanza si el email es inválido
+});
+```
+
+---
+
+## Código usado en la VM (Pest 3 / PHP 8.2)
+
+```php
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+it('registers a user', function () {
+    $this->post('/register', [
+        'name' => 'John Doe',
+        'email' => 'john@example.com',
+        'password' => 'password123',
+    ])->assertRedirect('/');
+
+    $this->assertAuthenticated();
+    expect(auth()->user()->email)->toBe('john@example.com');
+});
+
+it('logs in a user', function () {
+    $user = User::factory()->create(['password' => 'password123']);
+
+    $this->post('/login', [
+        'email' => $user->email,
+        'password' => 'password123',
+    ])->assertRedirect('/');
+
+    $this->assertAuthenticated();
+});
+
+it('logs out a user', function () {
+    $this->actingAs(User::factory()->create())
+        ->post('/logout')
+        ->assertRedirect('/');
+
+    $this->assertGuest();
+});
+
+it('requires a valid email', function () {
+    $this->post('/register', [
+        'name' => 'John',
+        'email' => 'no-es-email',
+        'password' => 'password123',
+    ])->assertSessionHasErrors('email');
+
+    $this->assertGuest();
+});
+```
+
+```bash
+vendor/bin/pest
+```
+
+---
+---

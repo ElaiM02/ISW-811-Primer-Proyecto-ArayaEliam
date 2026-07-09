@@ -14,6 +14,7 @@ class ExampleTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertStatus(200);
+        // La ruta '/' redirige a '/ideas'
+        $response->assertRedirect('/ideas');
     }
 }
