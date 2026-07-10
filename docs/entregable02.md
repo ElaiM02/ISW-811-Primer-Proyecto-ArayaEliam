@@ -1219,3 +1219,113 @@ No olvides tener `npm run dev` corriendo para que se compile el JS.
 
 ---
 ---
+
+# Idea Cards (Tarjetas de ideas)
+
+Se muestran las ideas del usuario como **tarjetas** en una grilla, con título, descripción, fecha y una **etiqueta de estado** (pill) de color según el status.
+
+## Ruta e index protegido
+
+```php
+Route::get('/', fn () => redirect('/ideas'));
+
+Route::get('/ideas', [IdeaController::class, 'index'])
+    ->middleware('auth');
+
+// la ruta de login debe tener nombre para el redirect de 'auth'
+Route::get('/login', [SessionsController::class, 'create'])->name('login');
+```
+
+## Cargar las ideas del usuario autenticado
+
+En el controlador se consultan **solo las ideas del usuario** (a través de la relación), no todas:
+
+```php
+public function index()
+{
+    return view('ideas.index', [
+        'ideas' => auth()->user()->ideas, // scoped al usuario actual
+    ]);
+}
+```
+
+## Vista index con grilla y bucle
+
+```blade
+<x-layouts.idea>
+    <header>
+        <h1 class="text-2xl font-bold">My Ideas</h1>
+    </header>
+
+    <div class="grid lg:grid-cols-2 gap-4 mt-6">
+        @forelse ($ideas as $idea)
+            <x-card>
+                <a href="/ideas/{{ $idea->id }}">
+                    <h3 class="text-lg text-white">{{ $idea->title }}</h3>
+                    <x-idea.status-label :status="$idea->status" />
+                    <div class="text-muted-foreground">{{ $idea->description }}</div>
+                    <div class="mt-2">{{ $idea->created_at->diffForHumans() }}</div>
+                </a>
+            </x-card>
+        @empty
+            <p>No ideas at this time.</p>
+        @endforelse
+    </div>
+</x-layouts.idea>
+```
+
+- `@forelse` recorre las ideas y muestra un mensaje si no hay ninguna.
+- `created_at->diffForHumans()` da fechas tipo "hace 2 minutos" (Carbon).
+
+![Fecha de creacion de la idea ](Images-entregable02/Idea%20Card%204.1%20Fecha%20de%20creacion.png)
+
+
+## Componente reutilizable Card
+
+`resources/views/components/card.blade.php`:
+
+```blade
+<div {{ $attributes->merge(['class' => 'border rounded-lg bg-card p-4 text-sm']) }}>
+    {{ $slot }}
+</div>
+```
+
+Se usa con `<x-card>...</x-card>`. El `$attributes->merge()` permite sobrescribir clases.
+
+## Componente de etiqueta de estado (status label)
+
+`resources/views/components/idea/status-label.blade.php`, con color distinto por estado:
+
+```blade
+@props(['status' => \App\Enums\IdeaStatus::Pending])
+
+@php
+    $classes = 'inline-block rounded-full text-xs font-medium px-2 border';
+
+    $classes .= match ($status) {
+        \App\Enums\IdeaStatus::Pending    => ' bg-yellow-500/10 text-yellow-500 border-yellow-500',
+        \App\Enums\IdeaStatus::InProgress => ' bg-blue-500/10 text-blue-500 border-blue-500',
+        \App\Enums\IdeaStatus::Completed  => ' bg-primary/10 text-primary border-primary',
+    };
+@endphp
+
+<span {{ $attributes->merge(['class' => $classes]) }}>
+    {{ $status->label() }}
+</span>
+```
+
+- `@props` declara `status` con default `Pending`.
+- `match` asigna colores: amarillo (pending), azul (in progress), verde (completed).
+- `$status->label()` usa el método del enum del capítulo anterior.
+
+## Generar datos de prueba
+
+```bash
+php artisan tinker
+>>> App\Models\Idea::factory()->count(3)->create(['user_id' => auth()->id() ?? 1]);
+```
+
+![Tarjetas de ideas con estado](Images-entregable02/Idea%20Card%204.2%20Status.png)
+
+---
+---
