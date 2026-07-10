@@ -1329,3 +1329,110 @@ php artisan tinker
 
 ---
 ---
+
+# Idea Filtering (Filtrado de ideas)
+
+Se agrega la posibilidad de filtrar las ideas por estado (pending / in progress / completed / all) mediante la **query string**, con pills clicables y un contador por estado.
+
+## Filtrar con la query string
+
+En el controlador se lee el filtro `status` de la URL y se aplica **condicionalmente** con `when()` (solo si viene en la petición):
+
+```php
+public function index()
+{
+    $user = auth()->user();
+
+    $ideas = $user->ideas()
+        ->when(
+            request('status'),
+            fn ($query, $status) => $query->where('status', $status)
+        )
+        ->get();
+
+    return view('ideas.index', [
+        'ideas' => $ideas,
+        'statusCounts' => Idea::statusCounts($user),
+    ]);
+}
+```
+
+- `when($condition, $callback)` aplica el `where` **solo** si `request('status')` tiene valor; si no, muestra todas.
+- La consulta parte de `$user->ideas()` para quedar **scoped al usuario** (importante para no contar ideas ajenas).
+
+## Pills de filtro (recorriendo el enum)
+
+En la vista se recorren los casos del enum para generar un link por estado, marcando el activo:
+
+```blade
+<div class="flex gap-2">
+    {{-- Botón "All" --}}
+    <a href="/ideas" @class(['btn', 'btn-outline' => request()->has('status')])>
+        All
+        <span class="text-xs pl-1">{{ $statusCounts['all'] ?? 0 }}</span>
+    </a>
+
+    @foreach (\App\IdeaStatus::cases() as $status)
+        <a href="/ideas?status={{ $status->value }}"
+           @class(['btn', 'btn-outline' => request('status') !== $status->value])>
+            {{ $status->label() }}
+            <span class="text-xs pl-1">{{ $statusCounts[$status->value] ?? 0 }}</span>
+        </a>
+    @endforeach
+</div>
+```
+
+- `@class([...])` aplica `btn-outline` cuando el pill **no** está activo (así el activo se ve "encendido").
+- Cada pill muestra el `label()` del enum y su contador.
+
+## Contar ideas por estado
+
+La consulta SQL de referencia sería `SELECT status, COUNT(*) FROM ideas GROUP BY status`. En Eloquent, con `selectRaw` + `groupBy`, y luego se rellenan con 0 los estados sin ideas. Se extrae al modelo `Idea`:
+
+```php
+// app/Models/Idea.php
+public static function statusCounts(User $user): Collection
+{
+    $counts = $user->ideas()
+        ->selectRaw('status, count(*) as count')
+        ->groupBy('status')
+        ->pluck('count', 'status'); // colección [status => count]
+
+    // asegurar que TODOS los estados aparezcan (aunque sean 0)
+    return collect(IdeaStatus::cases())
+        ->mapWithKeys(fn ($status) => [
+            $status->value => $counts[$status->value] ?? 0,
+        ])
+        ->put('all', $user->ideas()->count());
+}
+```
+
+- `pluck('count', 'status')` arma un mapa `estado => cantidad`.
+- `mapWithKeys` recorre **todos** los casos del enum, poniendo 0 si un estado no tiene ideas.
+- `put('all', ...)` agrega el total del usuario.
+
+## Validar el filtro (buena práctica)
+
+Para ignorar valores inválidos en la query string, se puede resetear el status si no es uno válido:
+
+```php
+$status = request('status');
+
+if (! in_array($status, IdeaStatus::values())) {
+    $status = null; // se ignora y se muestran todas
+}
+```
+
+Y un helper en el enum para obtener los valores:
+
+```php
+public static function values(): array
+{
+    return array_map(fn ($case) => $case->value, self::cases());
+}
+```
+
+![Filtrado de ideas con pills y contadores](Images-entregable02/Filtrado%20de%20Ideas%204.1%20se%20hace%20el%20filtrado%20de%20ideas.png)
+
+---
+---
