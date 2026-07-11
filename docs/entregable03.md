@@ -998,3 +998,96 @@ vendor/bin/pest tests/Feature/ShowIdeaTest.php
 
 ---
 ---
+
+# The Edit Idea Modal (Modal de edicion)
+
+Se reutiliza el **mismo modal** para editar una idea existente. Al presionar "Edit idea" en la pagina de detalle se abre el modal con los datos ya cargados.
+
+## Problema: el modal solo existia en index
+
+El modal estaba escrito directamente en `index.blade.php`, asi que en `show` no existia. Por eso, al despachar `open-modal` desde "Edit idea", no pasaba nada.
+
+## Solucion: extraer el modal a un componente reutilizable
+
+Se mueve todo el modal + formulario a un componente que acepta una idea **opcional**:
+
+`resources/views/components/idea/modal.blade.php`
+
+```blade
+@props(['idea' => null])
+
+@php
+    $editing = (bool) $idea; // hay idea -> modo edicion; null -> modo creacion
+@endphp
+
+<x-modal :name="$editing ? 'edit-idea-'.$idea->id : 'create-idea'"
+         :title="$editing ? 'Edit idea' : 'New idea'">
+    <form method="POST"
+          action="{{ $editing ? route('idea.update', $idea) : route('idea.store') }}"
+          enctype="multipart/form-data"
+          x-data="{
+              status: '{{ $editing ? $idea->status->value : 'pending' }}',
+              newLink: '', links: {{ $editing ? Js::from($idea->links) : '[]' }},
+              newStep: '', steps: {{ $editing ? Js::from($idea->steps->pluck('description')) : '[]' }}
+          }"
+          class="space-y-6">
+        @csrf
+        @if ($editing) @method('PATCH') @endif
+
+        {{-- ...los mismos campos (title, status, description, image, links, steps)... --}}
+        {{-- pre-cargando valores: value="{{ old('title', $idea?->title) }}" --}}
+
+        <div class="flex justify-end gap-2 pt-2">
+            <button type="button" class="btn btn-ghost" @click="$dispatch('close-modal')">Cancel</button>
+            <button type="submit" class="btn">{{ $editing ? 'Update' : 'Create' }}</button>
+        </div>
+    </form>
+</x-modal>
+```
+
+**Claves de la reutilizacion:**
+- El prop `:idea` decide si el modal esta en **modo creacion** (`null`) o **modo edicion** (una idea).
+- Si edita: la accion es `PATCH` a `route('idea.update', $idea)`; si crea: `POST` a `route('idea.store')`.
+- El `x-data` se **precarga** con el status, links y steps de la idea (usando `Js::from(...)` para pasar arrays PHP a JavaScript de forma segura).
+- Los campos usan `old('campo', $idea?->campo)` para mostrar los valores actuales.
+- El titulo y el boton cambian entre "New idea"/"Create" y "Edit idea"/"Update".
+
+## Incluir el modal en ambas paginas
+
+```blade
+{{-- index.blade.php: modo creacion --}}
+<x-idea.modal />
+
+{{-- show.blade.php: modo edicion, se le pasa la idea --}}
+<x-idea.modal :idea="$idea" />
+```
+
+## Boton "Edit idea" en la vista de detalle
+
+```blade
+<button data-test="edit-idea-button" x-data
+        @click="$dispatch('open-modal', 'edit-idea-{{ $idea->id }}')"
+        class="btn btn-outline">
+    Edit idea
+</button>
+```
+
+- Despacha `open-modal` con el nombre unico del modal de edicion (`edit-idea-{id}`), que coincide con el `name` del componente.
+
+## Test (inicio)
+
+```php
+it('edits an existing idea', function () {
+    $user = User::factory()->create();
+    $idea = Idea::factory()->for($user)->create();
+
+    $page = visit(route('idea.show', $idea))->actingAs($user);
+    $page->click('@edit-idea-button'); // abre el modal de edicion
+    // ...enviar cambios y verificar (se completa con Update Idea Action)
+});
+```
+
+![Modal de edicion](Images-entregable03/Edit%20modal%204.1%20edicion%20de%20Idea.png)
+
+---
+---

@@ -79,11 +79,22 @@ class IdeaController extends Controller
     {
         Gate::authorize('workWith', $idea);
 
-        $idea->update([
-            'description' => $request->input('description'),
-        ]);
+        // actualizar todo EXCEPTO steps e image
+        $data = $request->safe()->except(['steps', 'image']);
 
-        return redirect("/ideas/{$idea->id}");
+        if ($request->hasFile('image')) {
+            $data['image_path'] = $request->file('image')->store('ideas', 'public');
+        }
+
+        $idea->update($data);
+
+        // wipe & rebuild de los steps
+        $idea->steps()->delete();
+        $idea->steps()->createMany(
+            collect($request->steps ?? [])->map(fn ($step) => ['description' => $step])
+        );
+
+        return redirect()->route('idea.show', $idea)->with('success', 'Idea updated');
     }
 
     public function destroy(Idea $idea)
