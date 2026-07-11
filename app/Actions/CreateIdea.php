@@ -25,10 +25,8 @@ class CreateIdea
 
             $idea = $this->user->ideas()->create($data);
 
-            // crear los steps relacionados
-            $idea->steps()->createMany(
-                collect($attributes['steps'] ?? [])->map(fn ($step) => ['description' => $step])
-            );
+            // crear los steps relacionados (cada step es un objeto {description, completed})
+            $idea->steps()->createMany($attributes['steps'] ?? []);
 
             return $idea;
         });

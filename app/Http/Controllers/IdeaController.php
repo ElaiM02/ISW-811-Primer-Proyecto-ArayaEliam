@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreIdeaRequest;
 use App\Models\Idea;
 use App\Actions\CreateIdea;
+use App\Actions\UpdateIdea;
 use App\IdeaStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -75,24 +76,11 @@ class IdeaController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(StoreIdeaRequest $request, Idea $idea)
+    public function update(StoreIdeaRequest $request, Idea $idea, UpdateIdea $action)
     {
-        Gate::authorize('workWith', $idea);
+        Gate::authorize('workWith', $idea); // solo el creador
 
-        // actualizar todo EXCEPTO steps e image
-        $data = $request->safe()->except(['steps', 'image']);
-
-        if ($request->hasFile('image')) {
-            $data['image_path'] = $request->file('image')->store('ideas', 'public');
-        }
-
-        $idea->update($data);
-
-        // wipe & rebuild de los steps
-        $idea->steps()->delete();
-        $idea->steps()->createMany(
-            collect($request->steps ?? [])->map(fn ($step) => ['description' => $step])
-        );
+        $action->handle($request->validated(), $idea);
 
         return redirect()->route('idea.show', $idea)->with('success', 'Idea updated');
     }

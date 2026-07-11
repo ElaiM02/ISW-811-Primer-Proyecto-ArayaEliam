@@ -91,7 +91,8 @@
               x-data="{
                   status: '{{ $idea->status->value }}',
                   newLink: '', links: {{ Js::from(collect($idea->links)->toArray()) }},
-                  newStep: '', steps: {{ Js::from($idea->steps->pluck('description')) }}
+                  newStep: '', steps: {{ Js::from($idea->steps->map->only('id', 'description', 'completed')) }}
+
               }"
               class="space-y-6">
             @csrf
@@ -164,9 +165,10 @@
             <fieldset class="space-y-3">
                 <legend class="label">Actionable steps</legend>
 
-                <template x-for="(step, index) in steps" :key="index">
+                <template x-for="(step, index) in steps" :key="step.id ?? index">
                     <div class="flex gap-2">
-                        <input type="text" name="steps[]" x-model="steps[index]" class="input flex-1">
+                        <input type="text" :name="`steps[${index}][description]`" x-model="step.description" class="input flex-1">
+                        <input type="hidden" :name="`steps[${index}][completed]`" :value="step.completed ? 1 : 0">
                         <button type="button" @click="steps.splice(index, 1)" aria-label="Remove step">
                             <x-icon.close class="text-muted-foreground" />
                         </button>
@@ -177,7 +179,7 @@
                     <input type="text" x-model="newStep" placeholder="What needs to be done?"
                            class="input flex-1" spellcheck="false">
                     <button type="button" :disabled="newStep.length === 0"
-                            @click="steps.push(newStep.trim()); newStep = ''"
+                            @click="steps.push({ description: newStep.trim(), completed: false }); newStep = ''"
                             aria-label="Add step" class="btn rotate-45">
                         <x-icon.close />
                     </button>

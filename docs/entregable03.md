@@ -1091,3 +1091,123 @@ it('edits an existing idea', function () {
 
 ---
 ---
+
+# Update Idea Action (Accion para actualizar ideas)
+
+Se implementa la actualizacion de una idea con una **segunda clase de accion** (`UpdateIdea`), separada de `CreateIdea`. Al editar y enviar el modal, la idea se actualiza y se redirige a su pagina de detalle.
+
+## Dos acciones separadas (no una)
+
+Se evaluo reutilizar `CreateIdea`, pero requeriria muchos `if/else` (hay idea vs no hay). Por claridad se decide **mantenerlas separadas**: `CreateIdea` y `UpdateIdea`.
+
+## Los steps ahora son objetos (no strings)
+
+Para poder actualizar/eliminar/agregar steps al editar, el formulario pasa a ser la **fuente de verdad**: cada step lleva `description` **y** `completed`.
+
+En el modal:
+
+```blade
+<template x-for="(step, index) in steps" :key="step.id ?? index">
+    <div class="flex gap-2">
+        <input type="text" :name="`steps[${index}][description]`" x-model="step.description" class="input flex-1">
+        <input type="hidden" :name="`steps[${index}][completed]`" :value="step.completed ? 1 : 0">
+        <button type="button" @click="steps.splice(index, 1)" aria-label="Remove step">
+            <x-icon.close class="text-muted-foreground" />
+        </button>
+    </div>
+</template>
+```
+
+Al agregar un step nuevo se empuja un **objeto**:
+
+```js
+steps.push({ description: newStep.trim(), completed: false }); newStep = ''
+```
+
+Y en modo edicion, el `x-data` se precarga con objetos:
+
+```blade
+steps: {{ Js::from($idea->steps->map->only('id', 'description', 'completed')) }}
+```
+
+## Validacion actualizada
+
+En el Form Request, `steps` pasa de array de strings a array de objetos:
+
+```php
+'steps' => ['nullable', 'array'],
+'steps.*.description' => ['required', 'string', 'max:255'],
+'steps.*.completed' => ['boolean'],
+```
+
+## La clase UpdateIdea
+
+`app/Actions/UpdateIdea.php`:
+
+```php
+<?php
+
+namespace App\Actions;
+
+use App\Models\Idea;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
+
+class UpdateIdea
+{
+    // no necesita el usuario: se infiere de la idea que se actualiza
+    public function handle(array $attributes, Idea $idea): Idea
+    {
+        return DB::transaction(function () use ($attributes, $idea) {
+            $data = collect($attributes)->only(['title', 'description', 'status', 'links'])->toArray();
+
+            if (($attributes['image'] ?? null) instanceof UploadedFile) {
+                $data['image_path'] = $attributes['image']->store('ideas', 'public');
+            }
+
+            $idea->update($data);
+
+            // "wipe & rebuild": borrar los steps y recrearlos desde el form
+            $idea->steps()->delete();
+            $idea->steps()->createMany($attributes['steps'] ?? []);
+
+            return $idea;
+        });
+    }
+}
+```
+
+**Claves:**
+- Recibe `(array $attributes, Idea $idea)` — sin usuario, se infiere de la idea.
+- `instanceof UploadedFile` — solo procesa la imagen si de verdad se subio una nueva.
+- **Wipe & rebuild de steps**: `steps()->delete()` + `createMany(...)` — es mas simple que un `upsert` y sincroniza altas, bajas y cambios de una vez.
+
+## Controlador
+
+```php
+public function update(StoreIdeaRequest $request, Idea $idea, UpdateIdea $action)
+{
+    Gate::authorize('workWith', $idea); // solo el creador
+
+    $action->handle($request->validated(), $idea);
+
+    return redirect()->route('idea.show', $idea)->with('success', 'Idea updated');
+}
+```
+
+## Pruebas (organizacion)
+
+Se separan en carpeta `tests/Browser/Idea/` (o `Feature/Idea/`): `CreateIdeaTest` y `UpdateIdeaTest`. Ejemplos de aserciones utiles al editar:
+
+- `assertValue('title', $idea->title)` — el input se precarga con el valor actual.
+- Verificar que tras editar hay la cantidad correcta de steps/links.
+- Verificar el redirect a `idea.show`.
+
+## Detalle: id para steps nuevos
+
+Al usar `:key` en el `x-for`, los steps existentes tienen `id`, pero los nuevos no. Se usa `step.id ?? index` como key para evitar que se sobrescriban entre si.
+
+![Actualizacion de idea](Images-entregable03/Update%20Idea%2012.1%20update.png)
+
+---
+---
