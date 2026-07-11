@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\SessionsController;
 use App\Http\Controllers\IdeaController;
+use App\Http\Controllers\StepController;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,9 @@ Route::middleware('auth')->group(function () {
 
     Route::delete('/logout', [SessionsController::class, 'destroy']);
 });
+
+Route::patch('/steps/{step}', [StepController::class, 'update'])
+    ->name('step.update')->middleware('auth');
 
 Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisteredUserController::class, 'create']);

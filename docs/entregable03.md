@@ -559,3 +559,140 @@ $this->actingAs($user)->post('/ideas', [
 ![Enlaces asociados a una idea](Images-entregable03/links%204.2%20Idea%20con%20links.png)
 ---
 ---
+
+# Actionable Steps (Pasos accionables)
+
+Una idea puede tener uno o varios **pasos** (tareas), cada uno con una descripcion y un estado `completed` que se puede marcar/desmarcar. Los pasos se guardan en su propia tabla `steps` (relacion `hasMany`).
+
+## Agregar pasos en el modal (Alpine)
+
+Igual que los links, se usa un array en Alpine:
+
+```blade
+<form ... x-data="{ status: 'pending', newLink: '', links: [], newStep: '', steps: [] }">
+```
+
+Fieldset de pasos (encima de Links):
+
+```blade
+<fieldset class="space-y-3">
+    <legend class="label">Actionable steps</legend>
+
+    <template x-for="(step, index) in steps" :key="index">
+        <div class="flex gap-2">
+            <input type="text" name="steps[]" x-model="steps[index]" class="input flex-1">
+            <button type="button" @click="steps.splice(index, 1)" aria-label="Remove step">
+                <x-icon.close class="text-muted-foreground" />
+            </button>
+        </div>
+    </template>
+
+    <div class="flex gap-2">
+        <input type="text" id="new-step" x-model="newStep"
+               placeholder="What needs to be done?" class="input flex-1" spellcheck="false">
+        <button type="button" :disabled="newStep.length === 0"
+                @click="steps.push(newStep.trim()); newStep = ''"
+                aria-label="Add step" class="btn rotate-45">
+            <x-icon.close />
+        </button>
+    </div>
+</fieldset>
+```
+
+## Validar los pasos
+
+En `StoreIdeaRequest`:
+
+```php
+'steps' => ['nullable', 'array'],
+'steps.*' => ['string', 'max:255'],
+```
+
+## Persistir los pasos (tabla aparte)
+
+Los pasos NO estan en la tabla `ideas`, van en `steps`. Se crea la idea sin los steps y luego se asocian:
+
+```php
+public function store(StoreIdeaRequest $request)
+{
+    // crear la idea con todo EXCEPTO steps
+    $idea = auth()->user()->ideas()->create($request->safe()->except('steps'));
+
+    // crear los steps relacionados (array de strings -> array de arrays)
+    $idea->steps()->createMany(
+        collect($request->steps ?? [])->map(fn ($step) => ['description' => $step])
+    );
+
+    return redirect()->route('idea.index')->with('success', 'Idea created');
+}
+```
+
+- `$request->safe()->except('steps')` -> atributos validados **sin** `steps`.
+- `createMany([...])` -> inserta varios steps de una vez.
+- Se mapea cada string a `['description' => $step]` porque `createMany` espera arrays con las columnas.
+
+## Mostrar y marcar pasos en la vista de detalle
+
+En `show.blade.php`, encima de los links:
+
+```blade
+@if ($idea->steps->count())
+    <div class="mt-8">
+        <h3 class="font-bold">Actionable steps</h3>
+        <div class="space-y-2 mt-2">
+            @foreach ($idea->steps as $step)
+                <x-card class="flex items-center gap-3">
+                    {{-- boton para marcar/desmarcar (form PATCH) --}}
+                    <form method="POST" action="{{ route('step.update', $step) }}">
+                        @csrf
+                        @method('PATCH')
+                        <button type="submit" role="checkbox"
+                                @class([
+                                    'size-5 flex items-center justify-center rounded border border-primary',
+                                    'bg-primary text-primary-foreground' => $step->completed,
+                                ])>
+                            @if ($step->completed) &check; @endif
+                        </button>
+                    </form>
+
+                    <span @class(['line-through text-muted-foreground' => $step->completed])>
+                        {{ $step->description }}
+                    </span>
+                </x-card>
+            @endforeach
+        </div>
+    </div>
+@endif
+```
+
+## Ruta y controlador para alternar el estado
+
+Ruta PATCH:
+
+```php
+Route::patch('/steps/{step}', [StepController::class, 'update'])
+    ->name('step.update')->middleware('auth');
+```
+
+Controlador (`php artisan make:controller StepController`):
+
+```php
+public function update(Step $step)
+{
+    // Gate::authorize('update', $step->idea); // se agrega en el episodio de autorizacion
+
+    $step->update(['completed' => ! $step->completed]);
+
+    return back();
+}
+```
+
+- `! $step->completed` -> invierte el valor actual (toggle).
+- Si el paso esta completo, en la vista se le aplica `line-through` y color atenuado.
+
+![Pasos accionables asociados a una idea](Images-entregable03/Steps%204.1%20Model%20con%20Steps.png)
+![Pasos accionables asociados a una idea](Images-entregable03/Steps%204.2%20prueba%20pests.png)
+
+
+---
+---

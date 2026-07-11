@@ -10,9 +10,7 @@
         </x-card>
     </header>
 
-    {{-- Filtros por estado --}}
     <div class="flex flex-wrap gap-2 mb-6">
-        {{-- Botón "All" --}}
         <a href="/ideas" @class(['btn', 'btn-outline' => request()->has('status')])>
             All
             <span class="text-xs pl-1">{{ $statusCounts['all'] ?? 0 }}</span>
@@ -27,7 +25,6 @@
         @endforeach
     </div>
 
-    {{-- Grilla de ideas --}}
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         @forelse ($ideas as $idea)
             <x-card href="/ideas/{{ $idea->id }}">
@@ -44,7 +41,7 @@
 
     <x-modal name="create-idea" title="New idea">
         <form method="POST" action="{{ route('idea.store') }}"
-            x-data="{ status: 'pending', newLink: '', links: [] }" class="space-y-6">
+            x-data="{ status: 'pending', newLink: '', links: [], newStep: '', steps: [] }" class="space-y-6">
             @csrf
 
             {{-- Resumen de errores de validación --}}
@@ -60,7 +57,6 @@
 
             <x-form.field label="Title" name="title" placeholder="Enter a title for your idea" required />
 
-            {{-- Status --}}
             <div class="space-y-2">
                 <label class="label">Status</label>
                 <div class="flex gap-2">
@@ -76,11 +72,9 @@
                 <input type="hidden" name="status" :value="status">
             </div>
 
-            {{-- Description --}}
             <x-form.field label="Description" name="description" type="textarea"
                         placeholder="Describe your idea" />
 
-            {{-- Links --}}
             <fieldset class="space-y-3">
                 <legend class="label">Links</legend>
 
@@ -107,6 +101,31 @@
                 </div>
             </fieldset>
 
+            <div>
+                <fieldset class="space-y-3">
+                    <legend class="label">Actionable steps</legend>
+
+                    <template x-for="(step, index) in steps" :key="index">
+                        <div class="flex gap-2">
+                            <input type="text" name="steps[]" x-model="steps[index]" class="input flex-1">
+                            <button type="button" @click="steps.splice(index, 1)" aria-label="Remove step">
+                                <x-icon.close class="text-muted-foreground" />
+                            </button>
+                        </div>
+                    </template>
+
+                    <div class="flex gap-2">
+                        <input type="text" id="new-step" x-model="newStep"
+                            placeholder="What needs to be done?" class="input flex-1" spellcheck="false">
+                        <button type="button" :disabled="newStep.length === 0"
+                                @click="steps.push(newStep.trim()); newStep = ''"
+                                aria-label="Add step" class="btn rotate-45">
+                            <x-icon.close />
+                        </button>
+                    </div>
+                </fieldset>
+            </div>
+                
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" class="btn btn-ghost"
                         @click="$dispatch('close-modal')">Cancel</button>
@@ -115,7 +134,6 @@
         </form>
     </x-modal>
 
-    {{-- Si la validación falló, reabrir el modal para mostrar los errores --}}
     @if ($errors->any())
         <div x-data x-init="$nextTick(() => $dispatch('open-modal', 'create-idea'))"></div>
     @endif
