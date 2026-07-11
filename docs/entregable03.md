@@ -873,7 +873,128 @@ public function store(StoreIdeaRequest $request, CreateIdea $action)
 - **Testeable:** el test de creacion (episodio 33) sigue pasando sin cambios, porque el comportamiento es el mismo.
 - **Transaccional:** si falla la creacion de steps, no queda una idea a medias.
 
-![Refactor a clase de accion](Images-entregable03/Actions%209.1%20action%20class.png)
+---
+---
+
+# Authorization Is A Requirement (La autorizacion es obligatoria)
+
+Estar autenticado no basta: un usuario logueado no deberia poder ver, editar ni borrar ideas de **otro** usuario. Se agrega **autorizacion** con una Policy y se aplica en las acciones principales (`show`, `update`, `destroy`).
+
+## Bug detectado por el test (contexto)
+
+En el refactor anterior, el closure de la transaccion olvido incluir `$attributes` en el `use (...)`, asi que los steps nunca se insertaban. El test no lo detecto porque no habia una asercion sobre los steps. Leccion: escribir un test que verifique los steps:
+
+```php
+expect($idea->steps)->toHaveCount(2);
+```
+
+## Crear la Policy
+
+Al generar el modelo con `--policy` ya se creo `app/Policies/IdeaPolicy.php`. Si no:
+
+```bash
+php artisan make:policy IdeaPolicy --model=Idea
+```
+
+Regla simple: solo el creador de la idea puede trabajar con ella:
+
+```php
+<?php
+
+namespace App\Policies;
+
+use App\Models\Idea;
+use App\Models\User;
+
+class IdeaPolicy
+{
+    // el usuario puede modificar/ver esta idea?
+    public function workWith(User $user, Idea $idea): bool
+    {
+        return $user->is($idea->user); // solo el creador
+    }
+}
+```
+
+## Aplicar la autorizacion en el controlador
+
+```php
+use Illuminate\Support\Facades\Gate;
+
+public function show(Idea $idea)
+{
+    Gate::authorize('workWith', $idea); // lanza 403 si no es el creador
+
+    return view('ideas.show', ['idea' => $idea]);
+}
+
+public function destroy(Idea $idea)
+{
+    Gate::authorize('workWith', $idea);
+    $idea->delete();
+
+    return redirect()->route('idea.index');
+}
+```
+
+- `Gate::authorize('workWith', $idea)` -> si la policy devuelve `false`, corta con **403 Forbidden**.
+
+## Alternativa: autorizacion en la ruta (middleware)
+
+En lugar del controlador, se puede autorizar en la ruta:
+
+```php
+Route::get('/ideas/{idea}', [IdeaController::class, 'show'])
+    ->name('idea.show')
+    ->can('workWith', 'idea'); // 'idea' = parametro de ruta resuelto
+```
+
+> No hay un "correcto": autorizar en el controlador o en la ruta es cuestion de preferencia. El video lo hace en el controlador.
+
+## Pruebas de autorizacion
+
+`tests/Feature/ShowIdeaTest.php` (version VM, Pest 3):
+
+```php
+use App\Models\Idea;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+it('requires authentication', function () {
+    $idea = Idea::factory()->create();
+
+    $this->get(route('idea.show', $idea))
+        ->assertRedirect(route('login')); // sin login -> redirige a login
+});
+
+it('disallows accessing an idea you did not create', function () {
+    $user = User::factory()->create();
+    $idea = Idea::factory()->create(); // creada por OTRO usuario
+
+    $this->actingAs($user)
+        ->get(route('idea.show', $idea))
+        ->assertForbidden(); // 403
+});
+
+it('allows accessing your own idea', function () {
+    $user = User::factory()->create();
+    $idea = Idea::factory()->for($user)->create();
+
+    $this->actingAs($user)
+        ->get(route('idea.show', $idea))
+        ->assertOk();
+});
+```
+
+```bash
+vendor/bin/pest tests/Feature/ShowIdeaTest.php
+```
+
+> En el video se usan browser tests (`visit()`), que requieren Pest 4 / PHP 8.3; aqui se usan feature tests equivalentes con `get()`.
+
+![Pruebas de autorizacion en verde](Images-entregable03/Auth%2010.1%20autorizacion.png)
 
 ---
 ---

@@ -53,7 +53,7 @@ class IdeaController extends Controller
      */
     public function show(Idea $idea)
     {
-        //Gate::authorize('update', $idea);
+        Gate::authorize('workWith', $idea);
 
         return view('ideas.show', [
             'idea' => $idea,
@@ -65,7 +65,7 @@ class IdeaController extends Controller
      */
     public function edit(Idea $idea)
     {
-        Gate::authorize('update', $idea);
+        Gate::authorize('workWith', $idea);
 
         return view('ideas.edit', [
             'idea' => $idea,
@@ -77,7 +77,7 @@ class IdeaController extends Controller
      */
     public function update(StoreIdeaRequest $request, Idea $idea)
     {
-        Gate::authorize('update', $idea);
+        Gate::authorize('workWith', $idea);
 
         $idea->update([
             'description' => $request->input('description'),
@@ -88,7 +88,7 @@ class IdeaController extends Controller
 
     public function destroy(Idea $idea)
     {
-        Gate::authorize('update', $idea);
+        Gate::authorize('workWith', $idea);
 
         $idea->delete();
 
