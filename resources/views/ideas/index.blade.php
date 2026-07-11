@@ -41,8 +41,38 @@
         @endforelse
     </div>
 
-    {{-- Modal de creación --}}
+
     <x-modal name="create-idea" title="New idea">
-        <p>Aquí irá el formulario para crear una idea (siguiente episodio).</p>
+        <form method="POST" action="{{ route('idea.store') }}"
+            x-data="{ status: 'pending' }" class="space-y-6">
+            @csrf
+
+            <x-form.field label="Title" name="title" placeholder="Enter a title for your idea" required />
+
+            <x-form.field label="Description" name="description" type="textarea"
+                        placeholder="Describe your idea" />
+
+
+            <div class="space-y-2">
+                <label class="label">Status</label>
+                <div class="flex gap-2">
+                    @foreach (\App\IdeaStatus::cases() as $status)
+                        <button type="button" @click="status = @js($status->value)"
+                                :class="{ 'btn-outline': status !== @js($status->value) }"
+                                class="btn flex-1 h-10">
+                            {{ $status->label() }}
+                        </button>
+                    @endforeach
+                </div>
+
+                <input type="hidden" name="status" :value="status">
+            </div>
+            
+            <div class="flex justify-end gap-2">
+                <button type="button" class="btn btn-ghost"
+                        @click="$dispatch('close-modal')">Cancel</button>
+                <button type="submit" class="btn">Create</button>
+            </div>
+        </form>
     </x-modal>
 </x-layout>

@@ -2,8 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\IdeaStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreIdeaRequest extends FormRequest
 {
@@ -24,15 +26,9 @@ class StoreIdeaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'description' => ['required', 'min:10'],
-        ];
-    }
-
-    public function messages()
-    {
-        return [
-            'description.required' => 'Please provide a description for :attribute.',
-            'description.min' => 'The description must be at least 10 characters long.',
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'status' => ['required', Rule::enum(IdeaStatus::class)],
         ];
     }
 }

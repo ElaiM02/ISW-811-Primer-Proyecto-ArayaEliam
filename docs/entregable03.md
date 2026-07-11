@@ -222,3 +222,144 @@ Se agregan atributos ARIA para lectores de pantalla: `role="dialog"`, `aria-moda
 
 ---
 ---
+
+# Construct The Idea Form (Construir el formulario de idea)
+
+Dentro del modal se construye el formulario para crear una idea: título, descripción (textarea), selector de estado con botones (AlpineJS) y validación en el servidor.
+
+## Endpoint y estructura del formulario
+
+Ruta de guardado:
+
+```php
+Route::post('/ideas', [IdeaController::class, 'store'])->name('idea.store');
+```
+
+Formulario dentro del modal (`x-data` para el estado del selector):
+
+```blade
+<form method="POST" action="{{ route('idea.store') }}"
+      x-data="{ status: 'pending' }" class="space-y-6">
+    @csrf
+
+    <x-form.field label="Title" name="title" placeholder="Enter a title for your idea" required />
+
+    <x-form.field label="Description" name="description" type="textarea"
+                  placeholder="Describe your idea" />
+
+    {{-- Selector de estado --}}
+    <div class="space-y-2">
+        <label class="label">Status</label>
+        <div class="flex gap-2">
+            @foreach (\App\IdeaStatus::cases() as $status)
+                <button type="button" @click="status = @js($status->value)"
+                        :class="{ 'btn-outline': status !== @js($status->value) }"
+                        class="btn flex-1 h-10">
+                    {{ $status->label() }}
+                </button>
+            @endforeach
+        </div>
+        {{-- input oculto con el estado seleccionado --}}
+        <input type="hidden" name="status" :value="status">
+    </div>
+
+    {{-- Botones --}}
+    <div class="flex justify-end gap-2">
+        <button type="button" class="btn btn-ghost"
+                @click="$dispatch('close-modal')">Cancel</button>
+        <button type="submit" class="btn">Create</button>
+    </div>
+</form>
+```
+
+**Claves del selector de estado con Alpine:**
+- `x-data="{ status: 'pending' }"` → una sola fuente de verdad para el estado elegido.
+- `@click="status = @js($status->value)"` → al hacer clic, guarda el valor.
+- `:class="{ 'btn-outline': status !== ... }"` → el botón activo se ve "encendido" (sin outline).
+- `<input type="hidden" name="status" :value="status">` → lo que realmente se envía al servidor.
+
+## Soporte de textarea en el componente field
+
+Se hace el componente `field` más configurable (label opcional, tipo textarea):
+
+```blade
+@props(['label' => null, 'name', 'type' => 'text'])
+
+<div>
+    @if ($label)
+        <label for="{{ $name }}" class="label">{{ $label }}</label>
+    @endif
+
+    @if ($type === 'textarea')
+        <textarea name="{{ $name }}" id="{{ $name }}"
+                  {{ $attributes->merge(['class' => 'textarea']) }}>{{ old($name) }}</textarea>
+    @else
+        <input type="{{ $type }}" name="{{ $name }}" id="{{ $name }}"
+               value="{{ old($name) }}" {{ $attributes->merge(['class' => 'input']) }} />
+    @endif
+
+    <x-form.error :name="$name" />
+</div>
+```
+
+Y el componente de error extraído (`components/form/error.blade.php`):
+
+```blade
+@props(['name'])
+
+@error($name)
+    <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+@enderror
+```
+
+## Cerrar el modal al cancelar
+
+El botón Cancel emite `close-modal`; el modal lo escucha:
+
+```blade
+{{-- en modal.blade.php --}}
+@close-modal.window="show = false"
+```
+
+## Autorizar, validar y persistir
+
+En el Form Request (`StoreIdeaRequest`), autorizar (por defecto viene en `false`):
+
+```php
+public function authorize(): bool
+{
+    return true; // la autorización real se ve en un episodio posterior
+}
+
+public function rules(): array
+{
+    return [
+        'title' => ['required', 'string', 'max:255'],
+        'description' => ['nullable', 'string'],
+        'status' => ['required', Rule::enum(App\IdeaStatus::class)],
+    ];
+}
+```
+
+En el controlador:
+
+```php
+public function store(StoreIdeaRequest $request)
+{
+    auth()->user()->ideas()->create($request->validated());
+
+    return redirect()->route('idea.index')->with('success', 'Idea created');
+}
+```
+
+## Mostrar las más recientes primero
+
+```php
+// index()
+$ideas = auth()->user()->ideas()->latest()->get();
+```
+
+![Formulario de creación en el modal](Images-entregable03/Form%20Modal%204.1%20Creacion%20de%20formulario%20modal.png)
+
+---
+---
