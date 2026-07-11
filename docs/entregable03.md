@@ -1207,7 +1207,136 @@ Se separan en carpeta `tests/Browser/Idea/` (o `Feature/Idea/`): `CreateIdeaTest
 
 Al usar `:key` en el `x-for`, los steps existentes tienen `id`, pero los nuevos no. Se usa `step.id ?? index` como key para evitar que se sobrescriban entre si.
 
-![Actualizacion de idea](Images-entregable03/Update%20Idea%2012.1%20update.png)
+---
+---
+# Edit Your Profile (Editar el perfil)
+
+Se agrega la posibilidad de que el usuario edite su perfil (nombre, email, contrasena) y, como buena practica de seguridad, se **notifica al email anterior** cuando cambia el correo.
+
+## Enlace y ruta
+
+En el nav, si el usuario esta autenticado:
+
+```blade
+@auth
+    <a href="{{ route('profile.edit') }}">Edit profile</a>
+@endauth
+```
+
+Rutas:
+
+```php
+Route::middleware('auth')->group(function () {
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+});
+```
+
+> Usar **rutas con nombre** evita tener que actualizar todos los enlaces si cambias la URL.
+
+## Controlador de perfil
+
+```bash
+php artisan make:controller ProfileController
+```
+
+```php
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
+
+public function edit()
+{
+    return view('profile.edit', ['user' => Auth::user()]);
+}
+
+public function update(Request $request)
+{
+    $user = Auth::user();
+
+    $validated = $request->validate([
+        'name' => ['required', 'string', 'max:255'],
+        'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+        'password' => ['nullable', Password::defaults()],
+    ]);
+
+    $originalEmail = $user->email; // guardar el email anterior
+
+    $user->update([
+        'name' => $validated['name'],
+        'email' => $validated['email'],
+        // solo actualizar la contrasena si se envio una
+        ...($validated['password'] ? ['password' => $validated['password']] : []),
+    ]);
+
+    // si el email cambio, avisar al correo anterior
+    if ($originalEmail !== $user->email) {
+        Notification::route('mail', $originalEmail)
+            ->notify(new EmailChanged($user, $originalEmail));
+    }
+
+    return redirect()->route('profile.edit')->with('success', 'Profile updated');
+}
+```
+
+**Claves:**
+- `Rule::unique('users','email')->ignore($user->id)` -> el email debe ser unico, pero **ignorando** al propio usuario (para que no choque consigo mismo).
+- El `password` es opcional: solo se actualiza si se escribio uno (se hashea solo por el cast `hashed`).
+- `Notification::route('mail', $originalEmail)->notify(...)` -> envia una notificacion **on-demand** a un email que no es de un usuario del sistema (el correo anterior).
+
+## Vista del formulario
+
+`resources/views/profile/edit.blade.php` (similar al registro, precargada con los valores actuales):
+
+```blade
+<x-layout>
+    <x-form title="Edit your account" description="Update your profile details">
+        <form method="POST" action="{{ route('profile.update') }}" class="space-y-4">
+            @csrf
+            @method('PATCH')
+
+            <x-form.field label="Name" name="name" :value="$user->name" />
+            <x-form.field label="Email" name="email" type="email" :value="$user->email" />
+            <x-form.field label="New password" name="password" type="password" />
+
+            <button type="submit" class="btn w-full">Update account</button>
+        </form>
+    </x-form>
+</x-layout>
+```
+
+## Notificacion EmailChanged
+
+```bash
+php artisan make:notification EmailChanged
+```
+
+```php
+class EmailChanged extends Notification
+{
+    public function __construct(public User $user, public string $originalEmail) {}
+
+    public function via(object $notifiable): array { return ['mail']; }
+
+    public function toMail(object $notifiable): MailMessage
+    {
+        return (new MailMessage)
+            ->subject('Your email was changed')
+            ->line('Heads up: the email on your account was changed.')
+            ->line('If you did not do this, please contact support.');
+    }
+}
+```
+
+## Pruebas
+
+- `it('requires authentication')` -> sin login, `get(route('profile.edit'))->assertRedirect(route('login'))`.
+- `it('edits a profile')` -> tras enviar, `assertRedirect` + `$user->fresh()->name` actualizado.
+- `it('notifies the original email if changed')` -> usar `Notification::fake()` y `Notification::assertSentOnDemand(EmailChanged::class, fn ($n, $channels, $notifiable) => $notifiable->routes['mail'] === $originalEmail)`.
+
+> `Notification::fake()` evita enviar correos reales y permite hacer aserciones sobre lo que se "envio".
+
+![Perfil de usuario editable](Images-entregable03/edit%20profile%204.1%20Ediatar%20mi%20perfil.png)
+
 
 ---
 ---

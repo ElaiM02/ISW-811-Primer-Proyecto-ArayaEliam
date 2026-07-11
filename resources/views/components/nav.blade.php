@@ -28,6 +28,7 @@
     <form method="POST" action="/logout">
         @csrf
         @method('DELETE')
+        <a href="{{ route('profile.edit') }}">Edit profile</a>
         <button type="submit" class="btn btn-primary">Logout</button>
     </form>
     @else

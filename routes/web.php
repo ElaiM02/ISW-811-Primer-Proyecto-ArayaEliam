@@ -4,7 +4,7 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\SessionsController;
 use App\Http\Controllers\IdeaController;
 use App\Http\Controllers\StepController;
-use Illuminate\Support\Facades\Gate;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -21,6 +21,9 @@ Route::middleware('auth')->group(function () {
     Route::delete('/ideas/{idea}', [IdeaController::class, 'destroy'])->name('idea.destroy');
 
     Route::delete('/logout', [SessionsController::class, 'destroy']);
+
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
 });
 
 Route::patch('/steps/{step}', [StepController::class, 'update'])
