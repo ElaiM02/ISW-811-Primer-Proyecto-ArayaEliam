@@ -363,3 +363,102 @@ $ideas = auth()->user()->ideas()->latest()->get();
 
 ---
 ---
+
+# Test The Create Idea Form (Probar el formulario de creación)
+
+Se automatiza la prueba del modal de creación: visitar la página, abrir el modal, llenar el formulario, enviarlo y verificar que la idea se guardó en la base de datos.
+
+## Atributos data-test para seleccionar elementos
+
+Para no depender de textos (frágiles), se marcan los elementos con `data-test`:
+
+```blade
+{{-- botón que abre el modal --}}
+<x-card is="button" data-test="create-idea-button" ...>
+
+{{-- botones de estado --}}
+<button type="button" data-test="button-status-{{ $status->value }}" ...>
+```
+
+## Test de navegador (referencia del video)
+
+`tests/Browser/CreateIdeaTest.php`:
+
+```php
+it('creates a new idea', function () {
+    $user = User::factory()->create();
+
+    $page = visit('/ideas')->actingAs($user);
+
+    $page->click('@create-idea-button')      // abre el modal
+        ->fill('title', 'Some example title')
+        ->click('@button-status-completed')  // elige el estado
+        ->fill('description', 'An example description')
+        ->click('Create');                   // envía
+
+    $page->assertPath('/ideas');
+
+    expect($user->ideas()->first())->toMatchArray([
+        'title' => 'Some example title',
+        'status' => 'completed',
+        'description' => 'An example description',
+    ]);
+});
+```
+
+- `actingAs($user)` → la página requiere autenticación.
+- `@create-idea-button` → el prefijo `@` apunta a `data-test`.
+- `toMatchArray([...])` → verifica que la idea guardada tiene esos valores.
+
+> ⚠️ `visit()` requiere **Pest 4 / PHP 8.3**; en tu VM (PHP 8.2) se usa el feature test de abajo.
+
+## Código usado en la VM (Pest 3 / PHP 8.2)
+
+El mismo comportamiento sin abrir navegador, enviando el formulario con `post()`:
+
+```php
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses(RefreshDatabase::class);
+
+it('creates a new idea', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post('/ideas', [
+        'title' => 'Some example title',
+        'description' => 'An example description',
+        'status' => 'completed',
+    ])->assertRedirect('/ideas');
+
+    expect($user->ideas()->count())->toBe(1);
+
+    expect($user->ideas()->first())->toMatchArray([
+        'title' => 'Some example title',
+        'status' => 'completed',
+        'description' => 'An example description',
+    ]);
+});
+
+it('requires a title', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->post('/ideas', [
+        'description' => 'An example description',
+        'status' => 'pending',
+    ])->assertSessionHasErrors('title');
+
+    expect($user->ideas()->count())->toBe(0);
+});
+```
+
+```bash
+vendor/bin/pest tests/Feature/CreateIdeaTest.php
+```
+
+![Prueba del formulario en verde](Images-entregable03/Test%20Create%205.1%20test%20verde.png)
+
+**Equivalencias:** `visit()->click()->fill()->click('Create')` ↔ `post('/ideas', [...])`; `assertPath('/ideas')` ↔ `assertRedirect('/ideas')`; `toMatchArray(...)` funciona igual en ambos.
+
+---
+---
