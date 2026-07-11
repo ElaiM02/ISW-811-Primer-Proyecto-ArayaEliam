@@ -793,3 +793,87 @@ En `index.blade.php`, dentro de cada `<x-card>`, arriba del titulo:
 
 ---
 ---
+
+# Action Classes (Clases de accion)
+
+Se refactoriza la logica de crear una idea (que estaba toda en el controlador) hacia una **clase de accion** dedicada. Asi se puede reutilizar desde cualquier parte (controlador, comando de consola, IA, pruebas) y el controlador queda simple.
+
+## Que es una clase de accion
+
+Es simplemente una clase con un metodo (por convencion `handle`) que hace **una** cosa con un nombre descriptivo. Se guardan en `app/Actions/`.
+
+## Crear la clase CreateIdea
+
+`app/Actions/CreateIdea.php`:
+
+```php
+<?php
+
+namespace App\Actions;
+
+use App\Models\Idea;
+use App\Models\User;
+use Illuminate\Container\Attributes\CurrentUser;
+use Illuminate\Support\Facades\DB;
+
+class CreateIdea
+{
+    // Laravel inyecta el usuario autenticado gracias al atributo #[CurrentUser]
+    public function __construct(
+        #[CurrentUser] protected User $user
+    ) {}
+
+    public function handle(array $attributes): Idea
+    {
+        return DB::transaction(function () use ($attributes) {
+            $data = collect($attributes)->only(['title', 'description', 'status', 'links'])->toArray();
+
+            // si viene imagen, guardarla y agregar la ruta
+            if ($attributes['image'] ?? false) {
+                $data['image_path'] = $attributes['image']->store('ideas', 'public');
+            }
+
+            $idea = $this->user->ideas()->create($data);
+
+            // crear los steps relacionados
+            $idea->steps()->createMany(
+                collect($attributes['steps'] ?? [])->map(fn ($step) => ['description' => $step])
+            );
+
+            return $idea;
+        });
+    }
+}
+```
+
+**Claves:**
+- `#[CurrentUser]` -> atributo de PHP que le dice a Laravel que inyecte el usuario autenticado en el constructor.
+- `collect($attributes)->only([...])` -> selecciona solo las columnas que van en la tabla `ideas`.
+- `DB::transaction(...)` -> agrupa todas las operaciones; si algo falla, se **revierte todo** (rollback) para no dejar la BD inconsistente.
+
+## Controlador simplificado
+
+`app/Http/Controllers/IdeaController.php`:
+
+```php
+public function store(StoreIdeaRequest $request, CreateIdea $action)
+{
+    $action->handle($request->validated());
+
+    return redirect()->route('idea.index')->with('success', 'Idea created');
+}
+```
+
+- Laravel resuelve `CreateIdea` automaticamente desde el **contenedor de servicios** (inyeccion de dependencias), incluyendo el `#[CurrentUser]`.
+- El controlador ahora solo: valida (form request), delega a la accion y redirige.
+
+## Beneficios
+
+- **Reutilizable:** se puede crear una idea desde un comando, un job, un test o IA, no solo desde el controlador.
+- **Testeable:** el test de creacion (episodio 33) sigue pasando sin cambios, porque el comportamiento es el mismo.
+- **Transaccional:** si falla la creacion de steps, no queda una idea a medias.
+
+![Refactor a clase de accion](Images-entregable03/Actions%209.1%20action%20class.png)
+
+---
+---

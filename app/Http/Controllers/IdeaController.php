@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreIdeaRequest;
 use App\Models\Idea;
-use App\Notifications\IdeaPublished;
+use App\Actions\CreateIdea;
 use App\IdeaStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -41,26 +41,11 @@ class IdeaController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreIdeaRequest $request)
+    public function store(StoreIdeaRequest $request, CreateIdea $action)
     {
-
-        // crear la idea con todo EXCEPTO steps e image (van aparte)
-        $idea = Auth::user()->ideas()->create($request->safe()->except(['steps', 'image']));
-
-        if ($request->hasFile('image')) {
-            $path = $request->file('image')->store('ideas', 'public');
-            $idea->update(['image_path' => $path]);
-        }
-
-        // crear los steps relacionados (array de strings -> array de arrays)
-        $idea->steps()->createMany(
-            collect($request->steps ?? [])->map(fn ($step) => ['description' => $step])
-        );
-
-        Auth::user()->notify(new IdeaPublished($idea));
+        $action->handle($request->validated());
 
         return redirect()->route('idea.index')->with('success', 'Idea created');
-        
     }
 
     /**
