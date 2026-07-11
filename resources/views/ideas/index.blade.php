@@ -44,15 +44,23 @@
 
     <x-modal name="create-idea" title="New idea">
         <form method="POST" action="{{ route('idea.store') }}"
-            x-data="{ status: 'pending' }" class="space-y-6">
+            x-data="{ status: 'pending', newLink: '', links: [] }" class="space-y-6">
             @csrf
+
+            {{-- Resumen de errores de validación --}}
+            @if ($errors->any())
+                <div class="text-red-500 text-sm space-y-1">
+                    <ul class="list-disc list-inside">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             <x-form.field label="Title" name="title" placeholder="Enter a title for your idea" required />
 
-            <x-form.field label="Description" name="description" type="textarea"
-                        placeholder="Describe your idea" />
-
-
+            {{-- Status --}}
             <div class="space-y-2">
                 <label class="label">Status</label>
                 <div class="flex gap-2">
@@ -67,12 +75,48 @@
 
                 <input type="hidden" name="status" :value="status">
             </div>
-            
-            <div class="flex justify-end gap-2">
+
+            {{-- Description --}}
+            <x-form.field label="Description" name="description" type="textarea"
+                        placeholder="Describe your idea" />
+
+            {{-- Links --}}
+            <fieldset class="space-y-3">
+                <legend class="label">Links</legend>
+
+                <template x-for="(link, index) in links" :key="link">
+                    <div class="flex gap-2">
+                        <input type="text" name="links[]" x-model="links[index]" class="input flex-1">
+                        <button type="button" @click="links.splice(index, 1)" aria-label="Remove link">
+                            <x-icon.close class="text-muted-foreground" />
+                        </button>
+                    </div>
+                </template>
+
+                <div class="flex gap-2">
+                    <input type="url" id="new-link" x-model="newLink" data-test="new-link"
+                        placeholder="https://..." class="input flex-1" spellcheck="false">
+
+                    <button type="button" data-test="submit-new-link-button"
+                            :disabled="newLink.length === 0"
+                            @click="links.push(newLink.trim()); newLink = ''"
+                            aria-label="Add link"
+                            class="btn rotate-45">
+                        <x-icon.close />
+                    </button>
+                </div>
+            </fieldset>
+
+            <div class="flex justify-end gap-2 pt-2">
                 <button type="button" class="btn btn-ghost"
                         @click="$dispatch('close-modal')">Cancel</button>
                 <button type="submit" class="btn">Create</button>
             </div>
         </form>
     </x-modal>
+
+    {{-- Si la validación falló, reabrir el modal para mostrar los errores --}}
+    @if ($errors->any())
+        <div x-data x-init="$nextTick(() => $dispatch('open-modal', 'create-idea'))"></div>
+    @endif
 </x-layout>

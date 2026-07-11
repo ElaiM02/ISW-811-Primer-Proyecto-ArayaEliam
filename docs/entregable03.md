@@ -410,7 +410,7 @@ it('creates a new idea', function () {
 - `@create-idea-button` → el prefijo `@` apunta a `data-test`.
 - `toMatchArray([...])` → verifica que la idea guardada tiene esos valores.
 
-> ⚠️ `visit()` requiere **Pest 4 / PHP 8.3**; en tu VM (PHP 8.2) se usa el feature test de abajo.
+> `visit()` requiere **Pest 4 / PHP 8.3**; en tu VM (PHP 8.2) se usa el feature test de abajo.
 
 ## Código usado en la VM (Pest 3 / PHP 8.2)
 
@@ -456,9 +456,106 @@ it('requires a title', function () {
 vendor/bin/pest tests/Feature/CreateIdeaTest.php
 ```
 
-![Prueba del formulario en verde](Images-entregable03/Test%20Create%205.1%20test%20verde.png)
-
 **Equivalencias:** `visit()->click()->fill()->click('Create')` ↔ `post('/ideas', [...])`; `assertPath('/ideas')` ↔ `assertRedirect('/ideas')`; `toMatchArray(...)` funciona igual en ambos.
 
+---
+---
+# Allow For One or Many Links (Uno o varios enlaces)
+
+Se permite asociar **uno o varios enlaces** a una idea mediante inputs dinámicos con AlpineJS. El usuario escribe un link, presiona `+` y se agrega a la lista; también puede eliminarlos. Todos se envían como un array `links[]`.
+
+## Estado en Alpine
+
+En el `<form>` se agregan dos datos al `x-data`:
+
+```blade
+<form ... x-data="{ status: 'pending', links: [], newLink: '' }">
+```
+
+- `links` -> array de enlaces ya agregados.
+- `newLink` -> lo que el usuario esta escribiendo.
+
+## Fieldset de enlaces
+
+```blade
+<fieldset class="space-y-3">
+    <legend class="label">Links</legend>
+
+    {{-- Enlaces ya agregados (editables + boton eliminar) --}}
+    <template x-for="(link, index) in links" :key="link">
+        <div class="flex gap-2">
+            <input type="text" name="links[]" x-model="links[index]" class="input flex-1">
+            <button type="button" @click="links.splice(index, 1)" aria-label="Remove link">
+                <x-icon.close class="text-muted-foreground" />
+            </button>
+        </div>
+    </template>
+
+    {{-- Input para agregar un nuevo enlace --}}
+    <div class="flex gap-2">
+        <input type="url" id="new-link" x-model="newLink" data-test="new-link"
+               placeholder="https://..." class="input flex-1" spellcheck="false">
+
+        <button type="button" data-test="submit-new-link-button"
+                :disabled="newLink.length === 0"
+                @click="links.push(newLink.trim()); newLink = ''"
+                aria-label="Add link"
+                class="btn rotate-45">   {{-- rota la X 45 grados para simular un + --}}
+            <x-icon.close />
+        </button>
+    </div>
+</fieldset>
+```
+
+**Claves:**
+- `x-for` con `:key="link"` recorre los enlaces ya agregados.
+- `name="links[]"` -> agrupa todos los inputs como **array** al enviar el formulario tradicional.
+- `@click="links.push(newLink.trim()); newLink = ''"` -> agrega el enlace (recortado) y limpia el input.
+- `:disabled="newLink.length === 0"` -> no deja agregar vacios.
+- `links.splice(index, 1)` -> elimina ese enlace.
+- El boton `+` es en realidad el icono `close` (una X) **rotado 45 grados** (`rotate-45`).
+
+## Validar los enlaces en el servidor
+
+En `StoreIdeaRequest`:
+
+```php
+'links' => ['nullable', 'array'],
+'links.*' => ['url', 'max:255'], // valida CADA elemento del array
+```
+
+- `links.*` valida cada URL individual del array.
+
+## Guardar en la base de datos
+
+Como el modelo `Idea` tiene el cast `links => AsArrayObject`, el array se guarda directo (ya viene incluido en `$request->validated()`):
+
+```php
+auth()->user()->ideas()->create($request->validated());
+```
+
+## Test actualizado (agregar links)
+
+```php
+// dentro del test de creacion (browser)
+->fill('@new-link', 'https://laracasts.com')
+->click('@submit-new-link-button')
+->fill('@new-link', 'https://laravel.com')
+->click('@submit-new-link-button')
+// ...al enviar, se espera que links contenga ambos
+```
+
+En la VM (Pest 3) se prueba enviando `links` como array directamente:
+
+```php
+$this->actingAs($user)->post('/ideas', [
+    'title' => 'Con links',
+    'status' => 'pending',
+    'links' => ['https://laracasts.com', 'https://laravel.com'],
+])->assertRedirect('/ideas');
+```
+
+![Enlaces asociados a una idea](Images-entregable03/links%204.1%20models%20con%20links.png)
+![Enlaces asociados a una idea](Images-entregable03/links%204.2%20Idea%20con%20links.png)
 ---
 ---
