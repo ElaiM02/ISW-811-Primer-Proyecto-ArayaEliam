@@ -17,6 +17,14 @@
             </div>
         </div>
 
+        <div class="mt-8 space-y-6">
+            @if ($idea->image_path)
+                <div class="rounded-lg overflow-hidden mb-6">
+                    <img src="{{ asset('storage/' . $idea->image_path) }}"
+                        alt="{{ $idea->title }}" class="w-full h-auto object-cover">
+                </div>
+            @endif
+        
         <h1 class="text-2xl font-bold mt-8">{{ $idea->title }}</h1>
 
         <div class="flex gap-2 items-center mt-2">

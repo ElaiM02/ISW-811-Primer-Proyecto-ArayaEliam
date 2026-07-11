@@ -696,3 +696,100 @@ public function update(Step $step)
 
 ---
 ---
+
+# Upload Featured Images To Storage (Subir imagen destacada)
+
+Se agrega la posibilidad de subir una **imagen destacada** por idea, que se guarda en el almacenamiento de Laravel y se muestra en la vista de detalle y en las tarjetas.
+
+## Campo de archivo en el formulario
+
+Debajo de la descripcion, en el modal:
+
+```blade
+<div class="space-y-2">
+    <label for="image" class="label">Featured image</label>
+    <input type="file" name="image" id="image" accept="image/*" class="input">
+    <x-form.error name="image" />
+</div>
+```
+
+## Formulario multipart
+
+Para poder enviar archivos, el `<form>` necesita `enctype`:
+
+```blade
+<form method="POST" action="{{ route('idea.store') }}" enctype="multipart/form-data" ...>
+```
+
+> Sin `enctype="multipart/form-data"` el archivo **no se envia** al servidor.
+
+## Validar la imagen
+
+En `StoreIdeaRequest`:
+
+```php
+'image' => ['nullable', 'image', 'max:5120'], // max 5 MB (5120 KB)
+```
+
+## Guardar el archivo y asociar la ruta
+
+En el `store()`, despues de crear la idea:
+
+```php
+if ($request->hasFile('image')) {
+    $path = $request->file('image')->store('ideas', 'public'); // guarda en storage/app/public/ideas
+    $idea->update(['image_path' => $path]);
+}
+```
+
+- `store('ideas', 'public')` -> guarda el archivo en `storage/app/public/ideas` con un nombre unico y devuelve la ruta.
+- Se guarda esa ruta en la columna `image_path` de la idea.
+
+> La columna `image_path` ya se definio en la migracion de `ideas`.
+
+## Enlace simbolico de storage (storage:link)
+
+Los archivos en `storage/app/public` **no son accesibles** desde el navegador hasta crear el symlink:
+
+```bash
+php artisan storage:link
+```
+
+Esto crea `public/storage` -> `storage/app/public`, de modo que las imagenes quedan accesibles via `/storage/...`.
+
+## Mostrar la imagen
+
+En `show.blade.php`, arriba del titulo:
+
+```blade
+@if ($idea->image_path)
+    <div class="rounded-lg overflow-hidden mb-6">
+        <img src="{{ asset('storage/' . $idea->image_path) }}"
+             alt="{{ $idea->title }}" class="w-full h-auto object-cover">
+    </div>
+@endif
+```
+
+- `asset('storage/' . $idea->image_path)` -> genera la URL publica usando el symlink.
+- `object-cover` -> la imagen llena el area sin deformarse.
+
+## Miniatura en la tarjeta (index)
+
+En `index.blade.php`, dentro de cada `<x-card>`, arriba del titulo:
+
+```blade
+@if ($idea->image_path)
+    <div class="-mx-4 -mt-4 mb-4 rounded-t-lg overflow-hidden">
+        <img src="{{ asset('storage/' . $idea->image_path) }}"
+             alt="{{ $idea->title }}" class="w-full h-auto object-cover">
+    </div>
+@endif
+```
+
+- `-mx-4 -mt-4` -> margenes negativos para que la imagen llegue a los bordes del card.
+- `rounded-t-lg` -> esquinas redondeadas solo arriba.
+
+![Carga de imagen destacada](Images-entregable03/Imagenes%204.1%20Cargar%20imagenes.png)
+
+---
+---

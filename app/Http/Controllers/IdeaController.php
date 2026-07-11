@@ -44,8 +44,13 @@ class IdeaController extends Controller
     public function store(StoreIdeaRequest $request)
     {
 
-        // crear la idea con todo EXCEPTO steps (steps van en su propia tabla)
-        $idea = Auth::user()->ideas()->create($request->safe()->except('steps'));
+        // crear la idea con todo EXCEPTO steps e image (van aparte)
+        $idea = Auth::user()->ideas()->create($request->safe()->except(['steps', 'image']));
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('ideas', 'public');
+            $idea->update(['image_path' => $path]);
+        }
 
         // crear los steps relacionados (array de strings -> array de arrays)
         $idea->steps()->createMany(
@@ -55,6 +60,7 @@ class IdeaController extends Controller
         Auth::user()->notify(new IdeaPublished($idea));
 
         return redirect()->route('idea.index')->with('success', 'Idea created');
+        
     }
 
     /**
