@@ -1431,3 +1431,33 @@ it('formats a description using markdown', function () {
 
 ---
 ---
+
+# Where To Go From Here (Hacia dónde seguir)
+
+Episodio de cierre del curso. Jeffrey Way agradece y da recomendaciones sobre cómo seguir aprendiendo y mejorando el proyecto.
+
+## Ideas de mejora para el proyecto
+
+El proyecto de ideas es open source y se puede seguir ampliando. Sugerencias de features "de la vida real":
+
+- **Soporte de equipos (teams):** que varios usuarios (ej. John y Jane) compartan y colaboren en las mismas ideas.
+- **Autorización mas fina:** por ejemplo, John puede **ver** las ideas de Jane pero no **editarlas ni borrarlas**. Excelente práctica de policies.
+
+## Herramientas recomendadas para seguir
+
+| Herramienta | Para qué sirve |
+|---|---|
+| **Laravel Livewire** | Construir interfaces interactivas usando solo PHP, sin escribir JavaScript. |
+| **Vue.js / React** | Si te gusta JavaScript, frameworks front-end que se integran con Laravel. |
+| **Inertia.js** | Combina lo mejor de ambos: rutas y autorización tradicionales del lado del servidor, pero con la experiencia de una SPA. Es lo que usa el propio Laracasts. |
+
+## Mensaje final
+
+Hay muchísimos caminos posibles y **ninguno es incorrecto** — lo importante es elegir uno y seguir aprendiendo, porque el aprendizaje nunca termina.
+
+> Con este episodio se completa la serie **Laravel From Scratch (2026 Edition)** y el Proyecto 1 del curso ISW811.
+
+![Cierre del proyecto](Images-entregable03/Final%2015.1%20cierre.png)
+
+---
+---
