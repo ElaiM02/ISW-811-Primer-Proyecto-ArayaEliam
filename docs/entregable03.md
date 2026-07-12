@@ -1425,10 +1425,6 @@ it('formats a description using markdown', function () {
 });
 ```
 
-> El accessor es facil de testear porque es pura logica del modelo (no requiere navegador).
-
-![Descripcion con Markdown formateado](Images-entregable03/Deploy%2014.1%20markdown.png)
-
 ---
 ---
 
@@ -1456,8 +1452,6 @@ El proyecto de ideas es open source y se puede seguir ampliando. Sugerencias de 
 Hay muchísimos caminos posibles y **ninguno es incorrecto** — lo importante es elegir uno y seguir aprendiendo, porque el aprendizaje nunca termina.
 
 > Con este episodio se completa la serie **Laravel From Scratch (2026 Edition)** y el Proyecto 1 del curso ISW811.
-
-![Cierre del proyecto](Images-entregable03/Final%2015.1%20cierre.png)
 
 ---
 ---

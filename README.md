@@ -1,59 +1,166 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Idea — Proyecto 1 (Laravel From Scratch 2026)
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicación web para gestionar **ideas**: crear, editar, filtrar por estado, asociar enlaces,
+registrar pasos accionables, subir imágenes destacadas y editar el perfil de usuario.
 
-## About Laravel
+- **Curso:** ISW811 — Aplicaciones Web Utilizando Software Libre
+- **Estudiante:** Edgar Eliam Araya Alvarado
+- **Profesor:** Misael Matamoros Soto
+- **Basado en:** [Laravel From Scratch (2026 Edition)](https://laracasts.com/series/laravel-from-scratch-2026)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Características
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- Autenticación (registro, login, logout) con middleware `auth`/`guest`.
+- CRUD de ideas mediante **modales con AlpineJS** (crear y editar sin recargar).
+- **Estado** de cada idea (`pending`, `in_progress`, `completed`) con enum y etiquetas de color.
+- **Filtrado** por estado con contadores por categoría.
+- **Enlaces** y **pasos accionables** dinámicos (uno o varios por idea).
+- **Carga de imágenes** destacadas al almacenamiento de Laravel.
+- **Autorización** con Policies (cada usuario solo gestiona sus propias ideas).
+- **Descripción con Markdown** (accessor + Tailwind Typography).
+- **Edición de perfil** con notificación al correo anterior si el email cambia.
+- **Clases de acción** (`CreateIdea`, `UpdateIdea`) y **pruebas automatizadas** con Pest.
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Requisitos
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- PHP **8.2+**
+- Composer
+- Node.js y npm
+- MySQL (o MariaDB) — o SQLite
+- Servidor web (Apache/Nginx) o `php artisan serve`
 
-## Laravel Sponsors
+Este proyecto está pensado para correr dentro de una **máquina virtual Vagrant** (Debian + Apache),
+accesible en `http://lfts.isw811.xyz`.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## Instalación
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+```bash
+# 1. Clonar el repositorio
+git clone <url-del-repositorio> lfts.isw811.xyz
+cd lfts.isw811.xyz
 
-## Contributing
+# 2. Instalar dependencias de PHP
+composer install
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# 3. Instalar dependencias de JavaScript
+npm install
 
-## Code of Conduct
+# 4. Crear el archivo de entorno
+cp .env.example .env
+php artisan key:generate
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# 5. Configurar la base de datos en .env (DB_DATABASE, DB_USERNAME, DB_PASSWORD)
 
-## Security Vulnerabilities
+# 6. Ejecutar las migraciones
+php artisan migrate
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# 7. Crear el enlace simbólico de almacenamiento (para las imágenes subidas)
+php artisan storage:link
 
-## License
+# 8. Compilar los assets
+npm run build
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## Ejecución
+
+**Opción A — Con la máquina virtual (Apache):**
+
+```bash
+# desde la carpeta de la VM (host)
+vagrant up
+```
+
+Luego visita `http://lfts.isw811.xyz` en el navegador.
+
+**Opción B — Servidor de desarrollo local:**
+
+```bash
+php artisan serve
+```
+
+Visita `http://127.0.0.1:8000`.
+
+> **Nota sobre assets:** al cambiar clases de Tailwind o componentes, recompila con `npm run build`.
+> No uses `npm run dev` cuando accedas por el dominio de la VM (el servidor de Vite en `localhost:5173`
+> no es alcanzable desde ese dominio y los estilos no cargarían).
+
+---
+
+## Pruebas
+
+Las pruebas usan **Pest** y **SQLite en memoria** (configurado en `phpunit.xml`), por lo que no
+afectan la base de datos real.
+
+```bash
+# correr toda la suite
+vendor/bin/pest
+
+# o con artisan
+php artisan test
+
+# correr un archivo específico
+vendor/bin/pest tests/Feature/CreateIdeaTest.php
+```
+
+Cubren: registro, login, logout, validación, creación de ideas y autorización.
+
+> El curso usa *browser testing* con `visit()` (Pest 4 / PHP 8.3). Como este entorno usa PHP 8.2,
+> las pruebas se implementaron como **feature tests** equivalentes (`get`, `post`, `patch`).
+
+---
+
+## Formato de código
+
+```bash
+composer run format   # ejecuta Rector y Pint
+```
+
+---
+
+## Despliegue (documentado)
+
+El despliegue se realiza en la **máquina virtual** con Apache. Flujo para publicar cambios:
+
+```bash
+# dentro de la VM, en la carpeta del proyecto
+git pull
+
+composer install --no-dev --optimize-autoloader
+npm install && npm run build
+
+php artisan migrate --force
+php artisan storage:link      # solo la primera vez
+php artisan config:cache
+php artisan route:cache
+```
+
+El sitio queda disponible en `http://lfts.isw811.xyz` mediante el VirtualHost de Apache
+(`lfts.isw811.xyz.conf`), con `DocumentRoot` apuntando a la carpeta `public/`.
+
+> El video original despliega con **Laravel Forge** (push a GitHub → deploy automático). En este
+> curso el despliegue equivalente es manual en la VM, como se documenta arriba.
+
+---
+
+## Documentación del proceso
+
+El detalle del desarrollo, episodio por episodio, está en la carpeta `docs/`:
+
+- `docs/entregable01.md`, `docs/entregable02.md`, `docs/entregable03.md` — avances por entregable.
+- `docs/conclusiones-proyecto.md` — conclusiones y reflexión final.
+- `docs/Images-entregableXX/` — capturas de pantalla como evidencia.
+
+---
+
+## Licencia
+
+Proyecto académico basado en Laravel (framework open source bajo licencia
+[MIT](https://opensource.org/licenses/MIT)).
