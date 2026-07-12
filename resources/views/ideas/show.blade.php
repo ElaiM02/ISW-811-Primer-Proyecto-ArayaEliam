@@ -38,8 +38,8 @@
                 </span>
             </div>
 
-            <div class="card mt-6 max-w-none">
-                {{ $idea->description }}
+            <div class="card mt-6 max-w-none prose prose-invert">
+                {!! $idea->formatted_description !!}
             </div>
 
             @if ($idea->steps->count())

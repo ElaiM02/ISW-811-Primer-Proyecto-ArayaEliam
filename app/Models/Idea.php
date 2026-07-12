@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Support\Collection;
 
 class Idea extends Model
@@ -33,6 +34,13 @@ class Idea extends Model
         public function steps(): HasMany
     {
         return $this->hasMany(Step::class);
+    }
+
+    public function formattedDescription(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value, $attributes) => str($attributes['description'])->markdown()
+        );
     }
 
     public static function statusCounts(User $user): Collection

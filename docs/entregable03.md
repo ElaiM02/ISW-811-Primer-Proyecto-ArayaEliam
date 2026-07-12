@@ -1340,3 +1340,94 @@ class EmailChanged extends Notification
 
 ---
 ---
+
+# Deploy And Then Implement A Feature Request (Desplegar e implementar una mejora)
+
+Se cierra el proyecto: correr formato/pruebas, desplegar, y luego implementar una **solicitud de mejora** (descripcion con Markdown) para demostrar el ciclo completo cambio -> deploy -> produccion.
+
+## Formato y pruebas antes de desplegar
+
+```bash
+composer run format   # Rector + Pint
+vendor/bin/pest       # o php artisan test
+```
+
+Se corrigen tests que quedaron desactualizados: register y login ahora redirigen a `idea.index` (no a `/`), asi que las aserciones cambian a `assertRedirect(route('idea.index'))`.
+
+## Despliegue
+
+En el video se usa **Laravel Forge** (push a GitHub -> hook -> deploy automatico). En este curso el despliegue es en **tu VM** (Apache), asi que el flujo equivalente es:
+
+```bash
+# en la VM, dentro del proyecto
+git pull
+composer install --no-dev --optimize-autoloader
+npm install && npm run build
+php artisan migrate --force
+php artisan config:cache
+```
+
+## Feature request: descripcion con Markdown
+
+Se agrega un **accessor** (propiedad calculada) en el modelo `Idea` para formatear la descripcion como Markdown.
+
+`app/Models/Idea.php`:
+
+```php
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Support\Str;
+
+protected function formattedDescription(): Attribute
+{
+    return Attribute::get(
+        fn ($value, $attributes) => Str::of($attributes['description'] ?? '')->markdown()
+    );
+}
+```
+
+- Un **accessor** define una propiedad calculada: `$idea->formatted_description`.
+- `Str::of($texto)->markdown()` convierte el Markdown a HTML.
+
+## Mostrar el HTML en la vista
+
+En `show.blade.php`, la descripcion usa `{!! !!}` (sin escapar) para renderizar el HTML, y clases de tipografia:
+
+```blade
+<div class="card mt-6 prose prose-invert max-w-none">
+    {!! $idea->formatted_description !!}
+</div>
+```
+
+- `{!! ... !!}` -> imprime HTML sin escapar (necesario para el Markdown ya convertido).
+- `prose prose-invert` -> plugin de tipografia de Tailwind (estiliza el HTML: titulos, listas, enlaces, negritas); `invert` para tema oscuro.
+
+## Plugin de tipografia
+
+```bash
+npm install @tailwindcss/typography
+```
+
+En `resources/css/app.css`:
+
+```css
+@plugin "@tailwindcss/typography";
+```
+
+## Test del accessor
+
+```php
+it('formats a description using markdown', function () {
+    $idea = new Idea();
+    $idea->description = "hello *world*";
+
+    expect((string) $idea->formatted_description)
+        ->toContain('<em>world</em>');
+});
+```
+
+> El accessor es facil de testear porque es pura logica del modelo (no requiere navegador).
+
+![Descripcion con Markdown formateado](Images-entregable03/Deploy%2014.1%20markdown.png)
+
+---
+---
